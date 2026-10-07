@@ -1,9 +1,9 @@
-const PLACEHOLDERS = ["{时间}", "{教室号}", "{老师}"];
+const PLACEHOLDERS = ["{时间}", "{教室号}", "{教师}"];
 
 const SAMPLE_VALUES = {
   "{时间}": "9:00-10:30",
   "{教室号}": "2802",
-  "{老师}": "王国香",
+  "{教师}": "王国香",
 };
 
 const state = {
@@ -267,7 +267,7 @@ function renderPreview() {
 }
 
 function renderCopyText(template, last_time, last_room, last_teacher) {
-  const values = { "{时间}": last_time, "{教室号}": last_room, "{老师}": last_teacher };
+  const values = { "{时间}": last_time, "{教室号}": last_room, "{教师}": last_teacher };
   let out = template;
   for (const token of PLACEHOLDERS) {
     out = out.split(token).join(values[token] || "");
@@ -425,7 +425,7 @@ async function handleEditorConfirm() {
   }
   if (res && res.error) {
     if (res.error.indexOf("占位符") !== -1) {
-      showEditorError("模板里至少要有一个占位符（{时间}、{教室号} 或 {老师}）。");
+      showEditorError("模板里至少要有一个占位符（{时间}、{教室号} 或 {教师}）。");
     } else if (res.error.indexOf("名称") !== -1) {
       showEditorError("学生/班级名称不能为空。");
     } else {
@@ -736,7 +736,7 @@ function fillRoomCardDirectHtml() {
 function fillTeacherCardHtml() {
   return (
     '<div class="field fill-card">' +
-    '<label class="label">老师</label>' +
+    '<label class="label">教师</label>' +
     '<input id="fill-teacher" class="input" type="text" placeholder="例如：王国香">' +
     '<p class="error fill-field-error" data-field="teacher" hidden></p>' +
     "</div>"
@@ -753,7 +753,7 @@ function renderFill(profile, override) {
   const cards = [];
   if (tpl.indexOf("{时间}") !== -1) cards.push(isPicker ? fillTimeCardPickerHtml() : fillTimeCardDirectHtml());
   if (tpl.indexOf("{教室号}") !== -1) cards.push(isPicker ? fillRoomCardPickerHtml() : fillRoomCardDirectHtml());
-  if (tpl.indexOf("{老师}") !== -1) cards.push(fillTeacherCardHtml());
+  if (tpl.indexOf("{教师}") !== -1) cards.push(fillTeacherCardHtml());
   els.fillFields.innerHTML = cards.join("");
 
   const o = override || {};
@@ -798,7 +798,7 @@ function renderFill(profile, override) {
       document.getElementById("fill-room").value = exists ? roomVal : "";
     }
   }
-  if (tpl.indexOf("{老师}") !== -1) {
+  if (tpl.indexOf("{教师}") !== -1) {
     document.getElementById("fill-teacher").value = teacherVal;
   }
 }
@@ -1040,10 +1040,10 @@ async function handleFillConfirm() {
     last_room = room;
   }
 
-  if (tpl.indexOf("{老师}") !== -1) {
+  if (tpl.indexOf("{教师}") !== -1) {
     const teacher = values.teacher.trim();
     if (!teacher) {
-      showFillFieldError("teacher", "老师姓名不能为空。");
+      showFillFieldError("teacher", "教师姓名不能为空。");
       focusFillInput("fill-teacher");
       return;
     }
