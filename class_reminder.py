@@ -170,6 +170,45 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
         else:
             self._send_json(404, {"error": "Not Found"})
 
+    def do_PUT(self):
+        path = self.path.split("?", 1)[0]
+        prefix = "/api/profiles/"
+        if path.startswith(prefix):
+            profile_id = path[len(prefix):]
+            body = self._read_body()
+            name, template, err = validate_profile(body)
+            if err:
+                self._send_json(400, {"error": err})
+                return
+            data = self.store.load()
+            for profile in data["profiles"]:
+                if profile["id"] == profile_id:
+                    profile["name"] = name
+                    profile["template"] = template
+                    profile["updated_at"] = now_iso()
+                    self.store.save(data)
+                    self._send_json(200, {"profile": profile})
+                    return
+            self._send_json(404, {"error": "Not Found"})
+        else:
+            self._send_json(404, {"error": "Not Found"})
+
+    def do_DELETE(self):
+        path = self.path.split("?", 1)[0]
+        prefix = "/api/profiles/"
+        if path.startswith(prefix):
+            profile_id = path[len(prefix):]
+            data = self.store.load()
+            for i, profile in enumerate(data["profiles"]):
+                if profile["id"] == profile_id:
+                    del data["profiles"][i]
+                    self.store.save(data)
+                    self._send_empty(204)
+                    return
+            self._send_json(404, {"error": "Not Found"})
+        else:
+            self._send_json(404, {"error": "Not Found"})
+
 
 def main():
     parser = argparse.ArgumentParser(description="class-reminder 本地上课提醒工具")

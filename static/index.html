@@ -59,6 +59,18 @@
     </div>
   </div>
 
+  <!-- 删除确认 -->
+  <div id="confirm-modal" class="modal-backdrop" hidden>
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <h2 id="confirm-title" class="modal-title">删除档案</h2>
+      <p id="confirm-body" class="confirm-body"></p>
+      <div class="modal-actions">
+        <button id="btn-confirm-cancel" class="btn btn-secondary" type="button">取消</button>
+        <button id="btn-confirm-delete" class="btn btn-danger" type="button">删除</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/app.js"></script>
 </body>
 </html>

@@ -13,6 +13,10 @@ const state = {
   activeRoomCategory: "class",
 };
 
+let editorMode = "create";
+let editingProfileId = null;
+let confirmTarget = null;
+
 const els = {
   navProfiles: document.getElementById("nav-profiles"),
   navRooms: document.getElementById("nav-rooms"),
@@ -29,6 +33,11 @@ const els = {
   editorError: document.getElementById("editor-error"),
   btnEditorCancel: document.getElementById("btn-editor-cancel"),
   btnEditorConfirm: document.getElementById("btn-editor-confirm"),
+  confirmModal: document.getElementById("confirm-modal"),
+  confirmTitle: document.getElementById("confirm-title"),
+  confirmBody: document.getElementById("confirm-body"),
+  btnConfirmCancel: document.getElementById("btn-confirm-cancel"),
+  btnConfirmDelete: document.getElementById("btn-confirm-delete"),
 };
 
 async function api(path, options = {}) {
@@ -104,7 +113,27 @@ function renderProfileRow(profile) {
 
   main.appendChild(name);
   main.appendChild(preview);
+
+  const actions = document.createElement("div");
+  actions.className = "row-actions";
+
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "link-action";
+  editBtn.textContent = "编辑";
+  editBtn.addEventListener("click", () => openProfileEditor("edit", profile));
+
+  const delBtn = document.createElement("button");
+  delBtn.type = "button";
+  delBtn.className = "link-action link-danger";
+  delBtn.textContent = "删除";
+  delBtn.addEventListener("click", () => openDeleteConfirm("profile", profile));
+
+  actions.appendChild(editBtn);
+  actions.appendChild(delBtn);
+
   row.appendChild(main);
+  row.appendChild(actions);
   return row;
 }
 
@@ -160,14 +189,24 @@ function insertToken(token) {
   renderPreview();
 }
 
-function openProfileEditor() {
+function openProfileEditor(mode, profile) {
+  editorMode = mode || "create";
+  editingProfileId = profile ? profile.id : null;
   els.editorError.hidden = true;
   els.editorError.textContent = "";
-  els.profileEditorTitle.textContent = "新建档案";
-  els.btnEditorConfirm.textContent = "创建档案";
-  els.btnEditorCancel.textContent = "放弃创建";
-  els.profileName.value = "";
-  els.templateComposer.innerHTML = "";
+  if (editorMode === "edit" && profile) {
+    els.profileEditorTitle.textContent = "编辑档案";
+    els.btnEditorConfirm.textContent = "保存修改";
+    els.btnEditorCancel.textContent = "放弃修改";
+    els.profileName.value = profile.name || "";
+    els.templateComposer.innerHTML = templateToHtml(profile.template || "");
+  } else {
+    els.profileEditorTitle.textContent = "新建档案";
+    els.btnEditorConfirm.textContent = "创建档案";
+    els.btnEditorCancel.textContent = "放弃创建";
+    els.profileName.value = "";
+    els.templateComposer.innerHTML = "";
+  }
   els.profileEditor.hidden = false;
   renderPreview();
   els.profileName.focus();
@@ -182,7 +221,11 @@ async function handleEditorConfirm() {
   const template = serializeComposer(els.templateComposer);
   let res;
   try {
-    res = await api("/api/profiles", { method: "POST", body: { name, template } });
+    if (editorMode === "edit" && editingProfileId) {
+      res = await api("/api/profiles/" + editingProfileId, { method: "PUT", body: { name, template } });
+    } else {
+      res = await api("/api/profiles", { method: "POST", body: { name, template } });
+    }
   } catch (err) {
     showEditorError("保存失败：数据没有写进文件，请确认数据文件可写后重试。");
     return;
@@ -201,6 +244,37 @@ async function handleEditorConfirm() {
   await renderProfiles();
 }
 
+function openDeleteConfirm(kind, item) {
+  confirmTarget = { kind, item };
+  if (kind === "profile") {
+    els.confirmTitle.textContent = "删除档案";
+    els.confirmBody.textContent = "确定删除「" + item.name + "」吗？此操作无法撤销。";
+  } else {
+    els.confirmTitle.textContent = "删除教室";
+    els.confirmBody.textContent = "确定删除教室号「" + (item.number || "") + "」吗？";
+  }
+  els.confirmModal.hidden = false;
+}
+
+function closeConfirm() {
+  els.confirmModal.hidden = true;
+  confirmTarget = null;
+}
+
+async function handleConfirmDelete() {
+  if (!confirmTarget) return;
+  const target = confirmTarget;
+  try {
+    if (target.kind === "profile") {
+      await api("/api/profiles/" + target.item.id, { method: "DELETE" });
+    }
+  } catch (err) {
+    // 删除失败：关闭弹窗后重新渲染，该项仍在列表
+  }
+  closeConfirm();
+  await renderProfiles();
+}
+
 function showView(viewName) {
   state.activeView = viewName;
   const isProfiles = viewName === "profiles";
@@ -213,10 +287,12 @@ function showView(viewName) {
 function wireEvents() {
   els.navProfiles.addEventListener("click", () => showView("profiles"));
   els.navRooms.addEventListener("click", () => showView("rooms"));
-  els.btnNewProfile.addEventListener("click", () => openProfileEditor());
-  els.profilesEmpty.addEventListener("click", () => openProfileEditor());
+  els.btnNewProfile.addEventListener("click", () => openProfileEditor("create"));
+  els.profilesEmpty.addEventListener("click", () => openProfileEditor("create"));
   els.btnEditorCancel.addEventListener("click", closeEditor);
   els.btnEditorConfirm.addEventListener("click", handleEditorConfirm);
+  els.btnConfirmCancel.addEventListener("click", closeConfirm);
+  els.btnConfirmDelete.addEventListener("click", handleConfirmDelete);
   els.templateComposer.addEventListener("input", renderPreview);
   document.querySelectorAll(".chip-btn").forEach((btn) => {
     btn.addEventListener("click", () => insertToken(btn.dataset.token));
