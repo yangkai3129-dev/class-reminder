@@ -32,7 +32,7 @@
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Walking Skeleton + 档案 CRUD（建/改/删档案，含 `{时间}`/`{教室号}`/`{老师}` 占位符模板）
+- [x] 01-01-PLAN.md — Walking Skeleton + 档案 CRUD（建/改/删档案，含 `{时间}`/`{教室号}`/`{老师}` 占位符模板）
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -74,6 +74,6 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 数据底座 — 档案与教室管理 | 0/2 | Not started | - |
+| 1. 数据底座 — 档案与教室管理 | 1/2 | In Progress|  |
 | 2. 每日填写 | 0/TBD | Not started | - |
 | 3. 生成与复制 | 0/TBD | Not started | - |

@@ -9,9 +9,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### 档案管理 (PROF)
 
-- [ ] **PROF-01**: 同事能为新学生/班级创建档案，档案含一段自定义模板（固定文字 + `{时间}`、`{教室号}`、`{老师}` 三个占位符）
-- [ ] **PROF-02**: 同事能编辑已有档案的模板文字
-- [ ] **PROF-03**: 同事能删除已有档案
+- [x] **PROF-01**: 同事能为新学生/班级创建档案，档案含一段自定义模板（固定文字 + `{时间}`、`{教室号}`、`{老师}` 三个占位符）
+- [x] **PROF-02**: 同事能编辑已有档案的模板文字
+- [x] **PROF-03**: 同事能删除已有档案
 
 ### 教室名单 (ROOM)
 
@@ -65,9 +65,9 @@ Which phases cover which requirements. Filled during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PROF-01 | Phase 1 | Pending |
-| PROF-02 | Phase 1 | Pending |
-| PROF-03 | Phase 1 | Pending |
+| PROF-01 | Phase 1 | Complete |
+| PROF-02 | Phase 1 | Complete |
+| PROF-03 | Phase 1 | Complete |
 | ROOM-01 | Phase 1 | Pending |
 | ROOM-02 | Phase 2 | Pending |
 | FILL-01 | Phase 2 | Pending |
