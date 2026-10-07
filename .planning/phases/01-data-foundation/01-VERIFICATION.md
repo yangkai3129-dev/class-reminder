@@ -1,8 +1,8 @@
 ---
 phase: 01-data-foundation
 verified: 2026-10-07T16:40:00Z
-status: human_needed
-score: 5/5 must-haves verified
+status: passed
+score: 5/5 must-haves verified + 3/3 human UAT
 overrides_applied: 0
 human_verification:
   - test: "浏览器自动打开与界面视觉还原"
@@ -20,7 +20,7 @@ human_verification:
 
 **Phase Goal:** 同事能用本地程序建/改/删学生档案，并维护分「班课教室」「VIP教室」两类的教室号名单
 **Verified:** 2026-10-07
-**Status:** human_needed（自动化检查全部通过，UI 视觉/点击流需人工确认）
+**Status:** passed（自动化 5/5 通过，人工 UAT 3/3 通过）
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
@@ -116,9 +116,13 @@ human_verification:
 
 无 TBD/FIXME/XXX/TODO/HACK/PLACEHOLDER 债务标记；无空实现/桩代码；无 console.log 占位实现。grep 命中的 `PLACEHOLDERS`（常量名）、`return {}`（_read_body 空 body）、`return null`（api 204 分支）、`= {}`（options 默认参数）均为合法实现，非桩。
 
-### Human Verification Required
+### Human Verification — Passed (3/3)
 
-见 frontmatter `human_verification` 三条：浏览器自动打开与视觉还原、档案建/改/删点击流、教室分段切换与增/改/删。
+人工 UAT 三条全部通过（记录于 01-HUMAN-UAT.md，2026-10-07）：
+
+1. 浏览器自动打开与界面视觉还原 — 通过
+2. 档案建/改/删点击流 — 通过
+3. 教室分段切换与增/改/删 — 通过
 
 ### Gaps Summary
 
