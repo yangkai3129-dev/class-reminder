@@ -24,6 +24,7 @@ let roomsLoaded = false;
 let inputMode = "picker";
 let selectedRoomNumber = "";
 let renderedText = "";
+let copyDone = false;
 
 const els = {
   navProfiles: document.getElementById("nav-profiles"),
@@ -208,6 +209,7 @@ function renderCopyText(template, last_time, last_room, last_teacher) {
 }
 
 function openCopyModal(profile, rendered) {
+  copyDone = false;
   els.copyModalTitle.textContent = profile.name || "";
   els.copyPreview.textContent = rendered;
   els.copyStatus.hidden = true;
@@ -218,6 +220,54 @@ function openCopyModal(profile, rendered) {
 
 function closeCopyModal() {
   els.copyModal.hidden = true;
+}
+
+function showCopyStatus(message, isError) {
+  els.copyStatus.textContent = message;
+  els.copyStatus.hidden = false;
+  els.copyStatus.classList.toggle("error", !!isError);
+}
+
+function selectRenderedText() {
+  const sel = window.getSelection();
+  if (sel.rangeCount > 0) sel.removeAllRanges();
+  const range = document.createRange();
+  range.selectNodeContents(els.copyPreview);
+  sel.addRange(range);
+}
+
+async function handleCopyConfirm() {
+  let ok = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(renderedText);
+      ok = true;
+    } catch (err) {
+      ok = false;
+    }
+  }
+  if (ok) {
+    showCopyStatus("已复制到剪贴板", false);
+    copyDone = true;
+    els.btnCopyConfirm.textContent = "完成";
+  } else {
+    selectRenderedText();
+    showCopyStatus("请按 ⌘C 手动复制", true);
+  }
+}
+
+function finishCopyModal() {
+  closeCopyModal();
+  showView("profiles");
+  renderProfiles();
+}
+
+function handleCopyConfirmClick() {
+  if (copyDone) {
+    finishCopyModal();
+  } else {
+    handleCopyConfirm();
+  }
 }
 
 function insertToken(token) {
@@ -913,6 +963,7 @@ function wireEvents() {
   els.btnConfirmCancel.addEventListener("click", closeConfirm);
   els.btnConfirmDelete.addEventListener("click", handleConfirmDelete);
   els.btnCopyBack.addEventListener("click", closeCopyModal);
+  els.btnCopyConfirm.addEventListener("click", handleCopyConfirmClick);
   els.btnFillBack.addEventListener("click", () => showView("profiles"));
   els.btnFillConfirm.addEventListener("click", handleFillConfirm);
   els.fillModeToggle.querySelectorAll(".seg-tab").forEach((tab) => {
