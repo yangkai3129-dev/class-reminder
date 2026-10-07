@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-07)
 Phase: 03
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-10-08 - Completed quick task 261008-5l0: 制作 class-reminder 分发套件
+Last activity: 2026-10-08 - Completed quick task 261008-6bz: class-reminder UI 改版
 
 Progress: [██████████] 100%
 
@@ -90,6 +90,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 261008-5l0 | 制作 class-reminder 分发套件 | 2026-10-08 | 6c79183 | [261008-5l0-class-reminder-dist-class-reminder-py-st](./quick/261008-5l0-class-reminder-dist-class-reminder-py-st/) |
+| 261008-6bz | class-reminder UI 改版 | 2026-10-08 | f6c59b6 | [261008-6bz-class-reminder-ui-4-6-23-5-vip-6](./quick/261008-6bz-class-reminder-ui-4-6-23-5-vip-6/) |
 
 ## Deferred Items
 
