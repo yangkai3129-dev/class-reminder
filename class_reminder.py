@@ -10,6 +10,7 @@ import argparse
 import http.server
 import json
 import os
+import re
 import uuid
 import webbrowser
 from datetime import datetime, timezone
@@ -73,6 +74,9 @@ def new_profile(name, template):
         "id": "p_" + uuid.uuid4().hex[:12],
         "name": name,
         "template": template,
+        "last_time": "",
+        "last_room": "",
+        "last_teacher": "",
         "created_at": now,
         "updated_at": now,
     }
@@ -118,6 +122,34 @@ def validate_room(body):
     if category not in ("class", "vip"):
         return None, None, "教室类型无效。"
     return number, category, None
+
+
+def validate_fill(body):
+    """校验并清洗填写输入，返回 (last_time, last_room, last_teacher, error)。合法时 error 为 None。"""
+    if not isinstance(body, dict):
+        return None, None, None, "时间格式不正确，例如 9:00。"
+    last_time = body.get("last_time")
+    last_room = body.get("last_room")
+    last_teacher = body.get("last_teacher")
+    if not isinstance(last_time, str):
+        last_time = str(last_time) if last_time is not None else ""
+    if not isinstance(last_room, str):
+        last_room = str(last_room) if last_room is not None else ""
+    if not isinstance(last_teacher, str):
+        last_teacher = str(last_teacher) if last_teacher is not None else ""
+    last_time = last_time.strip()
+    last_room = last_room.strip()
+    last_teacher = last_teacher.strip()
+    if last_time:
+        m = re.match(r"^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$", last_time)
+        if not m:
+            return None, None, None, "时间格式不正确，例如 9:00。"
+        h1, m1, h2, m2 = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+        if h1 > 23 or m1 > 59 or h2 > 23 or m2 > 59:
+            return None, None, None, "时间格式不正确，例如 9:00。"
+        if h1 * 60 + m1 >= h2 * 60 + m2:
+            return None, None, None, "开始时间不能晚于结束时间。"
+    return last_time, last_room, last_teacher, None
 
 
 class ReminderHandler(http.server.BaseHTTPRequestHandler):
@@ -210,6 +242,25 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
         prefix = "/api/profiles/"
         if path.startswith(prefix):
             profile_id = path[len(prefix):]
+            if profile_id.endswith("/fill"):
+                profile_id = profile_id[: -len("/fill")]
+                body = self._read_body()
+                last_time, last_room, last_teacher, err = validate_fill(body)
+                if err:
+                    self._send_json(400, {"error": err})
+                    return
+                data = self.store.load()
+                for profile in data["profiles"]:
+                    if profile["id"] == profile_id:
+                        profile["last_time"] = last_time
+                        profile["last_room"] = last_room
+                        profile["last_teacher"] = last_teacher
+                        profile["updated_at"] = now_iso()
+                        self.store.save(data)
+                        self._send_json(200, {"profile": profile})
+                        return
+                self._send_json(404, {"error": "Not Found"})
+                return
             body = self._read_body()
             name, template, err = validate_profile(body)
             if err:
