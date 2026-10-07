@@ -1,9 +1,9 @@
-const PLACEHOLDERS = ["{时间}", "{教室号}", "{老师}"];
+const PLACEHOLDERS = ["{时间}", "{教室号}", "{教师}"];
 
 const SAMPLE_VALUES = {
   "{时间}": "9:00-10:30",
   "{教室号}": "2802",
-  "{老师}": "王国香",
+  "{教师}": "王国香",
 };
 
 const state = {
@@ -25,6 +25,10 @@ let inputMode = "picker";
 let selectedRoomNumber = "";
 let renderedText = "";
 let copyDone = false;
+let profileView = "list";
+let searchQuery = "";
+let fillRoomCategory = "class";
+let roomManageMode = false;
 
 const els = {
   navProfiles: document.getElementById("nav-profiles"),
@@ -32,6 +36,9 @@ const els = {
   profilesView: document.getElementById("profiles-view"),
   roomsView: document.getElementById("rooms-view"),
   profileList: document.getElementById("profile-list"),
+  profileGrid: document.getElementById("profile-grid"),
+  profileSearch: document.getElementById("profile-search"),
+  profileViewToggle: document.getElementById("profile-view-toggle"),
   profilesEmpty: document.getElementById("profiles-empty"),
   btnNewProfile: document.getElementById("btn-new-profile"),
   profileEditor: document.getElementById("profile-editor"),
@@ -43,8 +50,9 @@ const els = {
   btnEditorCancel: document.getElementById("btn-editor-cancel"),
   btnEditorConfirm: document.getElementById("btn-editor-confirm"),
   btnNewRoom: document.getElementById("btn-new-room"),
+  btnManageRooms: document.getElementById("btn-manage-rooms"),
   roomCategoryTabs: document.getElementById("room-category-tabs"),
-  roomList: document.getElementById("room-list"),
+  roomGrid: document.getElementById("room-grid"),
   roomsEmpty: document.getElementById("rooms-empty"),
   roomEditor: document.getElementById("room-editor"),
   roomEditorTitle: document.getElementById("room-editor-title"),
@@ -171,6 +179,40 @@ function renderProfileRow(profile) {
   return row;
 }
 
+function renderProfileCard(profile) {
+  const card = document.createElement("div");
+  card.className = "profile-card";
+  card.addEventListener("click", () => openFill(profile));
+
+  const name = document.createElement("div");
+  name.className = "profile-card-name";
+  name.textContent = profile.name;
+
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "profile-card-x";
+  del.setAttribute("aria-label", "删除");
+  del.textContent = "×";
+  del.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openDeleteConfirm("profile", profile);
+  });
+
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.className = "profile-card-edit";
+  edit.textContent = "编辑";
+  edit.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openProfileEditor("edit", profile);
+  });
+
+  card.appendChild(del);
+  card.appendChild(name);
+  card.appendChild(edit);
+  return card;
+}
+
 async function renderProfiles() {
   let data;
   try {
@@ -179,13 +221,38 @@ async function renderProfiles() {
     data = { profiles: [] };
   }
   state.profiles = data.profiles || [];
+  const q = (searchQuery || "").trim();
+  let filtered = state.profiles;
+  if (q) {
+    filtered = filtered.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
+  }
+  const isCard = profileView === "card";
+  if (isCard) {
+    filtered = filtered.slice().sort((a, b) => a.name.localeCompare(b.name, "zh"));
+  }
+  els.profileList.hidden = isCard;
+  els.profileGrid.hidden = !isCard;
   els.profileList.innerHTML = "";
-  if (state.profiles.length === 0) {
+  els.profileGrid.innerHTML = "";
+  if (filtered.length === 0) {
     els.profilesEmpty.hidden = false;
+    const title = els.profilesEmpty.querySelector(".empty-title");
+    const body = els.profilesEmpty.querySelector(".empty-body");
+    if (state.profiles.length > 0) {
+      title.textContent = "没有匹配的学生";
+      body.textContent = "换个关键词试试。";
+    } else {
+      title.textContent = "还没有学生档案";
+      body.textContent = "点「新建档案」，输入学生/班级名称和提醒模板，建好第一份档案。";
+    }
   } else {
     els.profilesEmpty.hidden = true;
-    for (const profile of state.profiles) {
-      els.profileList.appendChild(renderProfileRow(profile));
+    for (const profile of filtered) {
+      if (isCard) {
+        els.profileGrid.appendChild(renderProfileCard(profile));
+      } else {
+        els.profileList.appendChild(renderProfileRow(profile));
+      }
     }
   }
 }
@@ -200,7 +267,7 @@ function renderPreview() {
 }
 
 function renderCopyText(template, last_time, last_room, last_teacher) {
-  const values = { "{时间}": last_time, "{教室号}": last_room, "{老师}": last_teacher };
+  const values = { "{时间}": last_time, "{教室号}": last_room, "{教师}": last_teacher };
   let out = template;
   for (const token of PLACEHOLDERS) {
     out = out.split(token).join(values[token] || "");
@@ -358,7 +425,7 @@ async function handleEditorConfirm() {
   }
   if (res && res.error) {
     if (res.error.indexOf("占位符") !== -1) {
-      showEditorError("模板里至少要有一个占位符（{时间}、{教室号} 或 {老师}）。");
+      showEditorError("模板里至少要有一个占位符（{时间}、{教室号} 或 {教师}）。");
     } else if (res.error.indexOf("名称") !== -1) {
       showEditorError("学生/班级名称不能为空。");
     } else {
@@ -388,40 +455,31 @@ function switchRoomCategory(cat) {
   renderRooms();
 }
 
-function renderRoomRow(room) {
-  const row = document.createElement("div");
-  row.className = "profile-row";
+function renderRoomTile(room) {
+  const tile = document.createElement("div");
+  tile.className = "room-tile";
+  tile.addEventListener("click", () => {
+    if (!roomManageMode) openRoomEditor("edit", room);
+  });
 
-  const main = document.createElement("div");
-  main.className = "profile-row-main";
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "room-tile-x";
+  del.setAttribute("aria-label", "删除");
+  del.textContent = "×";
+  del.hidden = !roomManageMode;
+  del.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openDeleteConfirm("room", room);
+  });
 
   const number = document.createElement("div");
-  number.className = "room-number";
+  number.className = "room-tile-number";
   number.textContent = room.number;
 
-  main.appendChild(number);
-
-  const actions = document.createElement("div");
-  actions.className = "row-actions";
-
-  const editBtn = document.createElement("button");
-  editBtn.type = "button";
-  editBtn.className = "link-action";
-  editBtn.textContent = "编辑";
-  editBtn.addEventListener("click", () => openRoomEditor("edit", room));
-
-  const delBtn = document.createElement("button");
-  delBtn.type = "button";
-  delBtn.className = "link-action link-danger";
-  delBtn.textContent = "删除";
-  delBtn.addEventListener("click", () => openDeleteConfirm("room", room));
-
-  actions.appendChild(editBtn);
-  actions.appendChild(delBtn);
-
-  row.appendChild(main);
-  row.appendChild(actions);
-  return row;
+  tile.appendChild(del);
+  tile.appendChild(number);
+  return tile;
 }
 
 async function renderRooms() {
@@ -434,14 +492,16 @@ async function renderRooms() {
   state.rooms = data.rooms || [];
   roomsLoaded = true;
   renderRoomCategoryTabs();
-  const rooms = state.rooms.filter((r) => r.category === state.activeRoomCategory);
-  els.roomList.innerHTML = "";
+  const rooms = state.rooms
+    .filter((r) => r.category === state.activeRoomCategory)
+    .sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+  els.roomGrid.innerHTML = "";
   if (rooms.length === 0) {
     els.roomsEmpty.hidden = false;
   } else {
     els.roomsEmpty.hidden = true;
     for (const room of rooms) {
-      els.roomList.appendChild(renderRoomRow(room));
+      els.roomGrid.appendChild(renderRoomTile(room));
     }
   }
 }
@@ -550,27 +610,40 @@ function showView(viewName) {
   els.navRooms.classList.toggle("active", isRooms);
 }
 
-function buildTimeValues() {
-  // 06:00 – 23:45, 15-minute steps → 72 values (format H:MM, no leading zero)
+function hourValues() {
   const values = [];
-  for (let m = 360; m <= 1425; m += 15) {
-    values.push(Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0"));
-  }
+  for (let h = 6; h <= 23; h++) values.push(String(h));
   return values;
 }
 
-function snapTo15(value) {
+function minuteValues() {
+  const values = [];
+  for (let m = 0; m <= 55; m += 5) values.push(String(m).padStart(2, "0"));
+  return values;
+}
+
+function valuesForWheel(id) {
+  return /-m$/.test(id) ? minuteValues() : hourValues();
+}
+
+function snapTo5(value) {
   if (!value) return "";
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(value).trim());
   if (!m) return value;
-  const total = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
-  const snapped = Math.round(total / 15) * 15;
-  const clamped = Math.max(360, Math.min(1425, snapped));
-  return Math.floor(clamped / 60) + ":" + String(clamped % 60).padStart(2, "0");
+  let total = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  total = Math.round(total / 5) * 5;
+  total = Math.max(360, Math.min(1435, total));
+  return Math.floor(total / 60) + ":" + String(total % 60).padStart(2, "0");
 }
 
-function wheelHtml(id) {
-  const rows = buildTimeValues()
+function splitClock(clock) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(clock || "").trim());
+  if (!m) return { h: "9", m: "00" };
+  return { h: m[1], m: m[2] };
+}
+
+function wheelHtml(id, values) {
+  const rows = values
     .map((v) => '<div class="wheel-row" data-value="' + v + '">' + v + "</div>")
     .join("");
   return (
@@ -587,9 +660,24 @@ function fillTimeCardPickerHtml() {
   return (
     '<div class="field fill-card">' +
     '<label class="label">上课时间</label>' +
+    '<div class="time-picker">' +
+    '<div class="time-side">' +
+    '<div class="time-side-label">开始</div>' +
     '<div class="wheel-group">' +
-    wheelHtml("fill-time-wheel-start") +
-    wheelHtml("fill-time-wheel-end") +
+    wheelHtml("fill-time-wheel-start-h", hourValues()) +
+    '<span class="wheel-sep">:</span>' +
+    wheelHtml("fill-time-wheel-start-m", minuteValues()) +
+    "</div>" +
+    "</div>" +
+    '<span class="time-range-sep">—</span>' +
+    '<div class="time-side">' +
+    '<div class="time-side-label">结束</div>' +
+    '<div class="wheel-group">' +
+    wheelHtml("fill-time-wheel-end-h", hourValues()) +
+    '<span class="wheel-sep">:</span>' +
+    wheelHtml("fill-time-wheel-end-m", minuteValues()) +
+    "</div>" +
+    "</div>" +
     "</div>" +
     '<p class="error fill-field-error" data-field="time" hidden></p>' +
     "</div>"
@@ -620,6 +708,10 @@ function fillRoomCardPickerHtml() {
   return (
     '<div class="field fill-card">' +
     '<label class="label">教室号</label>' +
+    '<div class="segmented fill-room-toggle">' +
+    '<button class="seg-tab active" data-room-cat="class" type="button">班课教室</button>' +
+    '<button class="seg-tab" data-room-cat="vip" type="button">VIP教室</button>' +
+    "</div>" +
     '<div class="room-chip-container"></div>' +
     '<p class="error fill-field-error" data-field="room" hidden></p>' +
     "</div>"
@@ -639,7 +731,7 @@ function fillRoomCardDirectHtml() {
 function fillTeacherCardHtml() {
   return (
     '<div class="field fill-card">' +
-    '<label class="label">老师</label>' +
+    '<label class="label">教师</label>' +
     '<input id="fill-teacher" class="input" type="text" placeholder="例如：王国香">' +
     '<p class="error fill-field-error" data-field="teacher" hidden></p>' +
     "</div>"
@@ -656,7 +748,7 @@ function renderFill(profile, override) {
   const cards = [];
   if (tpl.indexOf("{时间}") !== -1) cards.push(isPicker ? fillTimeCardPickerHtml() : fillTimeCardDirectHtml());
   if (tpl.indexOf("{教室号}") !== -1) cards.push(isPicker ? fillRoomCardPickerHtml() : fillRoomCardDirectHtml());
-  if (tpl.indexOf("{老师}") !== -1) cards.push(fillTeacherCardHtml());
+  if (tpl.indexOf("{教师}") !== -1) cards.push(fillTeacherCardHtml());
   els.fillFields.innerHTML = cards.join("");
 
   const o = override || {};
@@ -667,14 +759,14 @@ function renderFill(profile, override) {
 
   if (tpl.indexOf("{时间}") !== -1) {
     if (isPicker) {
-      let startVal = "9:00";
-      let endVal = "10:30";
+      let start = { h: "9", m: "00" };
+      let end = { h: "10", m: "30" };
       if (lastTime && lastTime.indexOf("-") !== -1) {
         const parts = lastTime.split("-");
-        startVal = snapTo15(parts[0]);
-        endVal = snapTo15(parts[1]);
+        start = splitClock(snapTo5(parts[0]));
+        end = splitClock(snapTo5(parts[1]));
       }
-      renderTimeWheels(startVal, endVal);
+      renderTimeWheels(start, end);
     } else {
       const startEl = document.getElementById("fill-time-start");
       const endEl = document.getElementById("fill-time-end");
@@ -692,12 +784,16 @@ function renderFill(profile, override) {
     const exists = roomVal && state.rooms.some((r) => r.number === roomVal);
     if (isPicker) {
       selectedRoomNumber = exists ? roomVal : "";
+      const match = exists ? state.rooms.find((r) => r.number === roomVal) : null;
+      fillRoomCategory = match ? match.category : "class";
+      wireRoomToggle();
+      renderRoomToggle();
       renderRoomChips();
     } else {
       document.getElementById("fill-room").value = exists ? roomVal : "";
     }
   }
-  if (tpl.indexOf("{老师}") !== -1) {
+  if (tpl.indexOf("{教师}") !== -1) {
     document.getElementById("fill-teacher").value = teacherVal;
   }
 }
@@ -722,7 +818,7 @@ function getWheelValue(id) {
 }
 
 function snapWheel(col) {
-  const values = buildTimeValues();
+  const values = valuesForWheel(col.id);
   const idx = Math.max(0, Math.min(values.length - 1, Math.round(col.scrollTop / 32)));
   col.scrollTop = idx * 32;
   const selected = values[idx];
@@ -732,17 +828,19 @@ function snapWheel(col) {
   });
 }
 
-function renderTimeWheels(startValue, endValue) {
-  initTimeWheel("fill-time-wheel-start", startValue);
-  initTimeWheel("fill-time-wheel-end", endValue);
+function renderTimeWheels(start, end) {
+  initTimeWheel("fill-time-wheel-start-h", start.h);
+  initTimeWheel("fill-time-wheel-start-m", start.m);
+  initTimeWheel("fill-time-wheel-end-h", end.h);
+  initTimeWheel("fill-time-wheel-end-m", end.m);
 }
 
 function initTimeWheel(id, selectedValue) {
   const col = document.getElementById(id);
   if (!col) return;
-  const values = buildTimeValues();
-  let idx = values.indexOf(selectedValue);
-  if (idx < 0) idx = values.indexOf("9:00");
+  const values = valuesForWheel(id);
+  let idx = values.indexOf(String(selectedValue));
+  if (idx < 0) idx = 0;
   col.scrollTop = idx * 32;
 
   let scrollTimer = null;
@@ -762,11 +860,32 @@ function initTimeWheel(id, selectedValue) {
   snapWheel(col);
 }
 
+function renderRoomToggle() {
+  const toggle = els.fillFields.querySelector(".fill-room-toggle");
+  if (!toggle) return;
+  toggle.querySelectorAll(".seg-tab").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.roomCat === fillRoomCategory);
+  });
+}
+
+function wireRoomToggle() {
+  const toggle = els.fillFields.querySelector(".fill-room-toggle");
+  if (!toggle) return;
+  toggle.querySelectorAll(".seg-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      fillRoomCategory = tab.dataset.roomCat;
+      renderRoomToggle();
+      renderRoomChips();
+    });
+  });
+}
+
 function renderRoomChips() {
   const container = els.fillFields.querySelector(".room-chip-container");
   if (!container) return;
   container.innerHTML = "";
-  if (state.rooms.length === 0) {
+  const rooms = state.rooms.filter((r) => r.category === fillRoomCategory);
+  if (rooms.length === 0) {
     const empty = document.createElement("div");
     empty.className = "room-empty-hint";
     const title = document.createElement("strong");
@@ -778,22 +897,10 @@ function renderRoomChips() {
     container.appendChild(empty);
     return;
   }
-  const classRooms = state.rooms.filter((r) => r.category === "class");
-  const vipRooms = state.rooms.filter((r) => r.category === "vip");
-  if (classRooms.length > 0) {
-    container.appendChild(roomGroupHeader("班课教室"));
-    const group = document.createElement("div");
-    group.className = "room-chip-group";
-    classRooms.forEach((r) => group.appendChild(roomChipEl(r)));
-    container.appendChild(group);
-  }
-  if (vipRooms.length > 0) {
-    container.appendChild(roomGroupHeader("VIP教室"));
-    const group = document.createElement("div");
-    group.className = "room-chip-group";
-    vipRooms.forEach((r) => group.appendChild(roomChipEl(r)));
-    container.appendChild(group);
-  }
+  const group = document.createElement("div");
+  group.className = "room-chip-group";
+  rooms.forEach((r) => group.appendChild(roomChipEl(r)));
+  container.appendChild(group);
 }
 
 function roomGroupHeader(text) {
@@ -820,8 +927,8 @@ function roomChipEl(room) {
 function currentFillValues() {
   const out = { start: "", end: "", room: "", teacher: "" };
   if (inputMode === "picker") {
-    out.start = getWheelValue("fill-time-wheel-start");
-    out.end = getWheelValue("fill-time-wheel-end");
+    out.start = getWheelValue("fill-time-wheel-start-h") + ":" + getWheelValue("fill-time-wheel-start-m");
+    out.end = getWheelValue("fill-time-wheel-end-h") + ":" + getWheelValue("fill-time-wheel-end-m");
     out.room = selectedRoomNumber;
   } else {
     const startEl = document.getElementById("fill-time-start");
@@ -928,10 +1035,10 @@ async function handleFillConfirm() {
     last_room = room;
   }
 
-  if (tpl.indexOf("{老师}") !== -1) {
+  if (tpl.indexOf("{教师}") !== -1) {
     const teacher = values.teacher.trim();
     if (!teacher) {
-      showFillFieldError("teacher", "老师姓名不能为空。");
+      showFillFieldError("teacher", "教师姓名不能为空。");
       focusFillInput("fill-teacher");
       return;
     }
@@ -995,6 +1102,34 @@ function wireEvents() {
   document.querySelectorAll(".chip-btn").forEach((btn) => {
     btn.addEventListener("click", () => insertToken(btn.dataset.token));
   });
+
+  els.profileSearch.addEventListener("input", () => {
+    searchQuery = els.profileSearch.value;
+    renderProfiles();
+  });
+  els.profileSearch.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      searchQuery = els.profileSearch.value;
+      renderProfiles();
+    }
+  });
+  els.profileViewToggle.querySelectorAll(".seg-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      profileView = tab.dataset.view;
+      els.profileViewToggle.querySelectorAll(".seg-tab").forEach((t) => {
+        t.classList.toggle("active", t.dataset.view === profileView);
+      });
+      try {
+        localStorage.setItem("profileView", profileView);
+      } catch (err) {}
+      renderProfiles();
+    });
+  });
+  els.btnManageRooms.addEventListener("click", () => {
+    roomManageMode = !roomManageMode;
+    els.btnManageRooms.classList.toggle("active", roomManageMode);
+    renderRooms();
+  });
 }
 
 async function init() {
@@ -1007,6 +1142,18 @@ async function init() {
   }
   if (storedMode === "picker" || storedMode === "direct") {
     inputMode = storedMode;
+  }
+  let storedView = null;
+  try {
+    storedView = localStorage.getItem("profileView");
+  } catch (err) {
+    storedView = null;
+  }
+  if (storedView === "list" || storedView === "card") {
+    profileView = storedView;
+    els.profileViewToggle.querySelectorAll(".seg-tab").forEach((t) => {
+      t.classList.toggle("active", t.dataset.view === profileView);
+    });
   }
   updateModeToggle();
   showView("profiles");

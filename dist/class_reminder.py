@@ -19,7 +19,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(SCRIPT_DIR, "data.json")
 STATIC_DIR = os.path.join(SCRIPT_DIR, "static")
 
-PLACEHOLDERS = ["{时间}", "{教室号}", "{老师}"]
+PLACEHOLDERS = ["{时间}", "{教室号}", "{教师}"]
 
 # URL → 文件 的静态路由白名单（防路径穿越：绝不把用户路径拼进文件系统）
 STATIC_ROUTES = {
@@ -85,7 +85,7 @@ def new_profile(name, template):
 def validate_profile(body):
     """校验并清洗档案输入，返回 (name, template, error)。合法时 error 为 None。"""
     if not isinstance(body, dict):
-        return None, None, "模板里至少要有一个占位符（{时间}、{教室号} 或 {老师}）。"
+        return None, None, "模板里至少要有一个占位符（{时间}、{教室号} 或 {教师}）。"
     name = body.get("name")
     template = body.get("template")
     if not isinstance(name, str):
@@ -96,7 +96,7 @@ def validate_profile(body):
     if not name:
         return None, None, "学生/班级名称不能为空。"
     if not any(p in template for p in PLACEHOLDERS):
-        return None, None, "模板里至少要有一个占位符（{时间}、{教室号} 或 {老师}）。"
+        return None, None, "模板里至少要有一个占位符（{时间}、{教室号} 或 {教师}）。"
     return name, template, None
 
 
@@ -163,12 +163,14 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
     def _send_empty(self, status):
         self.send_response(status)
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", "0")
         self.end_headers()
 
@@ -197,6 +199,7 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
         ctype = CONTENT_TYPES.get(os.path.splitext(filename)[1], "application/octet-stream")
         self.send_response(200)
         self.send_header("Content-Type", ctype)
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
