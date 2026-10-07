@@ -676,9 +676,43 @@ body {
 }
 
 #profile-view-toggle {
-  gap: 16px;
-  border-bottom: none;
+  display: inline-flex;
+  gap: 0;
   margin-bottom: 0;
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+#profile-view-toggle .seg-tab {
+  padding: 6px 18px;
+  border: none;
+  border-radius: 0;
+  background: #ffffff;
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+#profile-view-toggle .seg-tab + .seg-tab {
+  border-left: 1px solid var(--divider);
+}
+
+#profile-view-toggle .seg-tab:hover {
+  background: var(--bg-secondary);
+}
+
+#profile-view-toggle .seg-tab.active {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+#profile-view-toggle .seg-tab.active:hover {
+  background: var(--accent-hover);
+}
+
+#profile-view-toggle .seg-tab.active::after {
+  display: none;
 }
 
 /* ---- Profile card grid ---- */
