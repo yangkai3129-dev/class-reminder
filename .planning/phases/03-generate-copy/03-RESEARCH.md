@@ -336,17 +336,15 @@ els.copyPreview.textContent = renderedText;
 
 **说明：** A1/A2/A3 均为防御性降级设计的一部分，即便任一为假，三级链的最终 D-03 手动兜底仍保证「复制永不卡死」。无需用户确认即可开工。
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **「完成」按钮形态（D-02 的 Claude's Discretion）**
-   - What we know: 复制成功后弹窗停留，「确认复制」应切换为「完成」或另起完成按钮。
-   - What's unclear: 二选一尚未拍板。
-   - Recommendation: 「确认复制」成功后**同按钮切换文案为「完成」**（复用 DOM，改动最小，符合「最多一个视觉焦点」的 Apple 原则）。
+1. **「完成」按钮形态（D-02 的 Claude's Discretion）** — RESOLVED
+   - Decision: 「确认复制」成功后**同按钮切换文案为「完成」**（复用 DOM，改动最小，符合「最多一个视觉焦点」的 Apple 原则）。
+   - Resolved in: 03-01-PLAN.md Task 3（`copyDone=true` → 按钮文案切「完成」）。
 
-2. **核对弹窗标题是否显示学生姓名（Claude's Discretion）**
-   - What we know: 建议显示。
-   - What's unclear: 未拍板。
-   - Recommendation: 显示「学生名」作为标题（帮助同事确认在给谁发），与 D-01「确认默认值」定位一致。
+2. **核对弹窗标题是否显示学生姓名（Claude's Discretion）** — RESOLVED
+   - Decision: 显示「学生名」作为标题（帮助同事确认在给谁发），与 D-01「确认默认值」定位一致。
+   - Resolved in: 03-01-PLAN.md Task 1（弹窗标题 = 学生名）。
 
 ## Environment Availability
 
