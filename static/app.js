@@ -849,7 +849,7 @@ async function handleFillConfirm() {
 
   if (tpl.indexOf("{教室号}") !== -1) {
     const room = values.room.trim();
-    if (inputMode === "direct" && !room) {
+    if (!room) {
       showFillFieldError("room", "教室号不能为空。");
       focusFillInput("fill-room");
       return;
@@ -883,8 +883,8 @@ async function handleFillConfirm() {
     els.fillError.hidden = false;
     return;
   }
-  showView("profiles");
-  await renderProfiles();
+  renderedText = renderCopyText(tpl, last_time, last_room, last_teacher);
+  openCopyModal(profile, renderedText);
 }
 
 function wireEvents() {
@@ -912,6 +912,7 @@ function wireEvents() {
   });
   els.btnConfirmCancel.addEventListener("click", closeConfirm);
   els.btnConfirmDelete.addEventListener("click", handleConfirmDelete);
+  els.btnCopyBack.addEventListener("click", closeCopyModal);
   els.btnFillBack.addEventListener("click", () => showView("profiles"));
   els.btnFillConfirm.addEventListener("click", handleFillConfirm);
   els.fillModeToggle.querySelectorAll(".seg-tab").forEach((tab) => {
