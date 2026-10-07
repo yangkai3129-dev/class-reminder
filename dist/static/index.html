@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>上课提醒</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar">
+      <h1 class="app-title">上课提醒</h1>
+      <nav class="nav">
+        <button id="nav-profiles" class="nav-item active" type="button">档案</button>
+        <button id="nav-rooms" class="nav-item" type="button">教室</button>
+      </nav>
+    </aside>
+    <main id="content">
+      <section id="profiles-view" class="view">
+        <header class="view-header">
+          <h2 id="profiles-title" class="view-title">档案</h2>
+          <button id="btn-new-profile" class="btn btn-primary" type="button">新建档案</button>
+        </header>
+        <div id="profile-list" class="list"></div>
+        <div id="profiles-empty" class="empty" hidden>
+          <h3 class="empty-title">还没有学生档案</h3>
+          <p class="empty-body">点「新建档案」，输入学生/班级名称和提醒模板，建好第一份档案。</p>
+        </div>
+      </section>
+
+      <section id="rooms-view" class="view" hidden>
+        <header class="view-header">
+          <h2 id="rooms-title" class="view-title">教室</h2>
+          <button id="btn-new-room" class="btn btn-primary" type="button">添加教室</button>
+        </header>
+        <div id="room-category-tabs" class="segmented" role="tablist">
+          <button class="seg-tab active" data-category="class" type="button" role="tab">班课教室</button>
+          <button class="seg-tab" data-category="vip" type="button" role="tab">VIP教室</button>
+        </div>
+        <div id="room-list" class="list"></div>
+        <div id="rooms-empty" class="empty" hidden>
+          <h3 class="empty-title">还没有教室号</h3>
+          <p class="empty-body">点「添加教室」，按「班课教室」或「VIP教室」分类加入第一个教室号。</p>
+        </div>
+      </section>
+
+      <section id="fill-view" class="view" hidden>
+        <header class="view-header">
+          <button id="btn-fill-back" class="link-action" type="button">‹ 档案</button>
+          <div id="fill-mode-toggle" class="segmented">
+            <button class="seg-tab active" data-mode="picker" type="button">点选/滚轮</button>
+            <button class="seg-tab" data-mode="direct" type="button">直接输入</button>
+          </div>
+        </header>
+        <h2 id="fill-title" class="view-title"></h2>
+        <p id="fill-error" class="error" hidden></p>
+        <div id="fill-fields" class="fill-fields"></div>
+        <p id="fill-hint" class="hint">点「确认」保存这三个值，下次打开该学生会自动带出。</p>
+        <div class="fill-footer">
+          <button id="btn-fill-confirm" class="btn btn-primary" type="button">确认</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 档案编辑器（创建/编辑） -->
+  <div id="profile-editor" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="profile-editor-title">
+      <h2 id="profile-editor-title" class="modal-title">新建档案</h2>
+      <div class="field">
+        <label class="label" for="profile-name">学生/班级名称</label>
+        <input id="profile-name" class="input" type="text" placeholder="例如：张三 · 海生2册">
+      </div>
+      <div class="field">
+        <label class="label">提醒模板</label>
+        <div class="composer-toolbar">
+          <button class="chip-btn" data-token="{时间}" type="button">{时间}</button>
+          <button class="chip-btn" data-token="{教室号}" type="button">{教室号}</button>
+          <button class="chip-btn" data-token="{老师}" type="button">{老师}</button>
+        </div>
+        <div id="template-composer" class="composer" contenteditable="true"></div>
+        <p class="hint">点上方按钮插入占位符，每天会自动替换成当天的值。</p>
+        <div id="template-preview" class="preview"></div>
+      </div>
+      <div id="editor-error" class="error" hidden></div>
+      <div class="modal-actions">
+        <button id="btn-editor-cancel" class="btn btn-secondary" type="button">放弃创建</button>
+        <button id="btn-editor-confirm" class="btn btn-primary" type="button">创建档案</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 教室编辑器（添加/编辑） -->
+  <div id="room-editor" class="modal-backdrop" hidden>
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="room-editor-title">
+      <h2 id="room-editor-title" class="modal-title">添加教室</h2>
+      <div class="field">
+        <label class="label" for="room-number">教室号</label>
+        <input id="room-number" class="input" type="text" placeholder="例如：2802">
+      </div>
+      <div class="field">
+        <label class="label">类型</label>
+        <div id="room-editor-tabs" class="segmented">
+          <button class="seg-tab active" data-category="class" type="button">班课教室</button>
+          <button class="seg-tab" data-category="vip" type="button">VIP教室</button>
+        </div>
+      </div>
+      <div id="room-editor-error" class="error" hidden></div>
+      <div class="modal-actions">
+        <button id="btn-room-cancel" class="btn btn-secondary" type="button">放弃添加</button>
+        <button id="btn-room-confirm" class="btn btn-primary" type="button">保存教室</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 删除确认 -->
+  <div id="confirm-modal" class="modal-backdrop" hidden>
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <h2 id="confirm-title" class="modal-title">删除档案</h2>
+      <p id="confirm-body" class="confirm-body"></p>
+      <div class="modal-actions">
+        <button id="btn-confirm-cancel" class="btn btn-secondary" type="button">取消</button>
+        <button id="btn-confirm-delete" class="btn btn-danger" type="button">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 核对弹窗（确认 → 只读预览 → 修改/确认复制） -->
+  <div id="copy-modal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="copy-modal-title">
+      <h2 id="copy-modal-title" class="modal-title"></h2>
+      <pre id="copy-preview" class="copy-preview"></pre>
+      <p id="copy-status" class="copy-status" hidden></p>
+      <div class="modal-actions">
+        <button id="btn-copy-back" class="btn btn-secondary" type="button">修改</button>
+        <button id="btn-copy-confirm" class="btn btn-primary" type="button">确认复制</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
