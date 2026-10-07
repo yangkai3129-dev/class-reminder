@@ -23,8 +23,12 @@
   3. 同事能编辑已有档案的模板文字、删除已有档案
   4. 同事能维护教室号名单，按「班课教室」「VIP教室」两类增/删/改
   5. 档案与教室数据持久化到本地 JSON 文件，重启程序后仍在
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 01-01-PLAN.md — Walking Skeleton + 档案 CRUD（建/改/删档案，含 `{时间}`/`{教室号}`/`{老师}` 占位符模板）
+- [ ] 01-02-PLAN.md — 教室名单 CRUD（班课教室/VIP教室 两类增/删/改）
 
 ### Phase 2: 每日填写
 **Goal**: 同事打开学生档案即可确认或微调时间、教室、老师三个字段
@@ -56,6 +60,6 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 数据底座 — 档案与教室管理 | 0/TBD | Not started | - |
+| 1. 数据底座 — 档案与教室管理 | 0/2 | Not started | - |
 | 2. 每日填写 | 0/TBD | Not started | - |
 | 3. 生成与复制 | 0/TBD | Not started | - |
