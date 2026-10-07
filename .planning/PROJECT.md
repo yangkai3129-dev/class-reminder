@@ -8,6 +8,26 @@
 
 把「每天给每个学生编一条明日上课提醒」从「手敲文案」降到「确认默认值 + 一键复制」——每天几十个学生，每人少花几秒钟、少错一个字。
 
+## Current State
+
+**Shipped:** v1.0 MVP (2026-10-08) — 见 [milestone archive](milestones/v1.0-ROADMAP.md)
+
+- 3 phases、6 plans 全部完成；12/12 v1 需求 validated（每 phase 均过人工 UAT + verification）
+- ~2,142 LOC，4 个源文件（`class_reminder.py` + `static/` 的 HTML/CSS/JS）
+- 零第三方依赖：Python 3 标准库 + 本地 HTTP 服务（bind 127.0.0.1）+ JSON 原子写存储
+- 端到端闭环已打通：建档 → 打开预填 → 微调 → 核对弹窗 → 一键复制进剪贴板
+
+## Next Milestone Goals
+
+v2 候选（来自 v1.0 归档的 deferred 需求，尚未定范围）：
+
+- **移动端** — 手机/平板也能使用
+- **批量** — 一次批量生成多个学生的文案
+- **微信集成** — 企业微信 API 自动发送（需管理员建自建应用 + 客户联系权限）
+- **同步** — 多用户 / 云端同步
+
+_范围通过 `/gsd:new-milestone` 定义。_
+
 ## Requirements
 
 ### Validated
@@ -84,4 +104,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-08 after Phase 3*
+*Last updated: 2026-10-08 after v1.0 milestone archive*
