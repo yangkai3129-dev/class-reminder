@@ -712,8 +712,8 @@ async function openFill(profile) {
     }
     roomsLoaded = true;
   }
-  renderFill(profile);
   showView("fill");
+  renderFill(profile);
 }
 
 function getWheelValue(id) {
