@@ -52,8 +52,17 @@ Plans:
   4. 同事能手打老师姓名
   5. 同事能通过全局开关在「点选/滚轮」与「直接输入」间切换（作用于时间、教室，老师始终手打）
 
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — 数据闭环（后端 last_* 持久化 + 填写视图 + 预填 + 确认存值，直接输入形态）
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02-02-PLAN.md — 点选/滚轮形态（时间双滚轮 + 教室分组点选 + 全局开关切换）
 
 ### Phase 3: 生成与复制
 
@@ -75,5 +84,5 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 数据底座 — 档案与教室管理 | 2/2 | Complete   | 2026-10-07 |
-| 2. 每日填写 | 0/TBD | Not started | - |
+| 2. 每日填写 | 0/2 | Not started | - |
 | 3. 生成与复制 | 0/TBD | Not started | - |
