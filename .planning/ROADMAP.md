@@ -13,46 +13,60 @@
 ## Phase Details
 
 ### Phase 1: 数据底座 — 档案与教室管理
+
 **Goal**: 同事能用本地程序建/改/删学生档案，并维护分「班课教室」「VIP教室」两类的教室号名单
 **Mode**: mvp
 **Depends on**: Nothing (first phase)
 **Requirements**: PROF-01, PROF-02, PROF-03, ROOM-01
 **Success Criteria** (what must be TRUE):
+
   1. 同事启动本地程序后能在浏览器打开界面，界面遵守 Apple 设计规范
   2. 同事能创建新学生/班级档案，输入含 `{时间}`、`{教室号}`、`{老师}` 三个占位符的自定义模板
   3. 同事能编辑已有档案的模板文字、删除已有档案
   4. 同事能维护教室号名单，按「班课教室」「VIP教室」两类增/删/改
   5. 档案与教室数据持久化到本地 JSON 文件，重启程序后仍在
+
 **Plans**: 2 plans
 **UI hint**: yes
 
 Plans:
+**Wave 1**
+
 - [ ] 01-01-PLAN.md — Walking Skeleton + 档案 CRUD（建/改/删档案，含 `{时间}`/`{教室号}`/`{老师}` 占位符模板）
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 01-02-PLAN.md — 教室名单 CRUD（班课教室/VIP教室 两类增/删/改）
 
 ### Phase 2: 每日填写
+
 **Goal**: 同事打开学生档案即可确认或微调时间、教室、老师三个字段
 **Mode**: mvp
 **Depends on**: Phase 1
 **Requirements**: FILL-01, FILL-02, FILL-03, FILL-04, ROOM-02
 **Success Criteria** (what must be TRUE):
+
   1. 打开某学生时，时间、教室号、老师已预填该学生上一次的值
   2. 同事用苹果式「开始时间 + 结束时间」滚轮选择上课时间
   3. 同事能从教室名单点选教室号（「班课教室」「VIP教室」分组显示）
   4. 同事能手打老师姓名
   5. 同事能通过全局开关在「点选/滚轮」与「直接输入」间切换（作用于时间、教室，老师始终手打）
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 3: 生成与复制
+
 **Goal**: 同事一键核对完整渲染文案并复制进剪贴板
 **Mode**: mvp
 **Depends on**: Phase 2
 **Requirements**: COPY-01, COPY-02, COPY-03
 **Success Criteria** (what must be TRUE):
+
   1. 点「确认」后弹出核对弹窗，显示完整渲染文案（占位符已替换为当前值）
   2. 核对弹窗提供「修改」（返回编辑）与「确认复制」（复制到剪贴板）两个选项
   3. 确认复制后完整文案进入系统剪贴板，可直接粘贴进企业微信客户群
+
 **Plans**: TBD
 **UI hint**: yes
 
