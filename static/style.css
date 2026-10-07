@@ -441,6 +441,48 @@ body {
   margin-bottom: 24px;
 }
 
+/* ---- Fill view ---- */
+.fill-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fill-card {
+  margin-bottom: 0;
+}
+
+.fill-time-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.fill-time-col {
+  flex: 1;
+}
+
+.fill-time-sep {
+  font-size: 17px;
+  line-height: 40px;
+  color: var(--text-secondary);
+}
+
+.fill-field-error {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.fill-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+#fill-title {
+  margin-bottom: 24px;
+}
+
 [hidden] {
   display: none !important;
 }

@@ -19,6 +19,8 @@ let confirmTarget = null;
 let roomEditorMode = "create";
 let editingRoomId = null;
 let draftRoomCategory = "class";
+let fillProfileId = null;
+let roomsLoaded = false;
 
 const els = {
   navProfiles: document.getElementById("nav-profiles"),
@@ -52,6 +54,12 @@ const els = {
   confirmBody: document.getElementById("confirm-body"),
   btnConfirmCancel: document.getElementById("btn-confirm-cancel"),
   btnConfirmDelete: document.getElementById("btn-confirm-delete"),
+  fillView: document.getElementById("fill-view"),
+  fillTitle: document.getElementById("fill-title"),
+  fillFields: document.getElementById("fill-fields"),
+  fillError: document.getElementById("fill-error"),
+  btnFillBack: document.getElementById("btn-fill-back"),
+  btnFillConfirm: document.getElementById("btn-fill-confirm"),
 };
 
 async function api(path, options = {}) {
@@ -116,6 +124,7 @@ function renderProfileRow(profile) {
 
   const main = document.createElement("div");
   main.className = "profile-row-main";
+  main.addEventListener("click", () => openFill(profile));
 
   const name = document.createElement("div");
   name.className = "profile-name";
@@ -320,6 +329,7 @@ async function renderRooms() {
     data = { rooms: [] };
   }
   state.rooms = data.rooms || [];
+  roomsLoaded = true;
   renderRoomCategoryTabs();
   const rooms = state.rooms.filter((r) => r.category === state.activeRoomCategory);
   els.roomList.innerHTML = "";
@@ -428,10 +438,204 @@ async function handleConfirmDelete() {
 function showView(viewName) {
   state.activeView = viewName;
   const isProfiles = viewName === "profiles";
+  const isRooms = viewName === "rooms";
+  const isFill = viewName === "fill";
   els.profilesView.hidden = !isProfiles;
-  els.roomsView.hidden = isProfiles;
-  els.navProfiles.classList.toggle("active", isProfiles);
-  els.navRooms.classList.toggle("active", !isProfiles);
+  els.roomsView.hidden = !isRooms;
+  els.fillView.hidden = !isFill;
+  els.navProfiles.classList.toggle("active", isProfiles || isFill);
+  els.navRooms.classList.toggle("active", isRooms);
+}
+
+function fillTimeCardHtml() {
+  return (
+    '<div class="field fill-card">' +
+    '<label class="label">上课时间</label>' +
+    '<div class="fill-time-row">' +
+    '<div class="fill-time-col">' +
+    '<label class="label" for="fill-time-start">开始</label>' +
+    '<input id="fill-time-start" class="input" type="text" placeholder="9:00">' +
+    "</div>" +
+    '<span class="fill-time-sep">-</span>' +
+    '<div class="fill-time-col">' +
+    '<label class="label" for="fill-time-end">结束</label>' +
+    '<input id="fill-time-end" class="input" type="text" placeholder="10:30">' +
+    "</div>" +
+    "</div>" +
+    '<p class="error fill-field-error" data-field="time" hidden></p>' +
+    "</div>"
+  );
+}
+
+function fillRoomCardHtml() {
+  return (
+    '<div class="field fill-card">' +
+    '<label class="label">教室号</label>' +
+    '<input id="fill-room" class="input" type="text" placeholder="例如：2802">' +
+    '<p class="error fill-field-error" data-field="room" hidden></p>' +
+    "</div>"
+  );
+}
+
+function fillTeacherCardHtml() {
+  return (
+    '<div class="field fill-card">' +
+    '<label class="label">老师</label>' +
+    '<input id="fill-teacher" class="input" type="text" placeholder="例如：王国香">' +
+    '<p class="error fill-field-error" data-field="teacher" hidden></p>' +
+    "</div>"
+  );
+}
+
+function renderFill(profile) {
+  fillProfileId = profile.id;
+  els.fillTitle.textContent = profile.name || "";
+  els.fillError.hidden = true;
+  els.fillError.textContent = "";
+  const tpl = profile.template || "";
+  const cards = [];
+  if (tpl.indexOf("{时间}") !== -1) cards.push(fillTimeCardHtml());
+  if (tpl.indexOf("{教室号}") !== -1) cards.push(fillRoomCardHtml());
+  if (tpl.indexOf("{老师}") !== -1) cards.push(fillTeacherCardHtml());
+  els.fillFields.innerHTML = cards.join("");
+
+  if (tpl.indexOf("{时间}") !== -1) {
+    const startEl = document.getElementById("fill-time-start");
+    const endEl = document.getElementById("fill-time-end");
+    const lastTime = profile.last_time || "";
+    if (lastTime && lastTime.indexOf("-") !== -1) {
+      const parts = lastTime.split("-");
+      startEl.value = parts[0] || "9:00";
+      endEl.value = parts[1] || "10:30";
+    } else {
+      startEl.value = "9:00";
+      endEl.value = "10:30";
+    }
+  }
+  if (tpl.indexOf("{教室号}") !== -1) {
+    const roomEl = document.getElementById("fill-room");
+    const lastRoom = profile.last_room || "";
+    const exists = lastRoom && state.rooms.some((r) => r.number === lastRoom);
+    roomEl.value = exists ? lastRoom : "";
+  }
+  if (tpl.indexOf("{老师}") !== -1) {
+    const teacherEl = document.getElementById("fill-teacher");
+    teacherEl.value = profile.last_teacher || "";
+  }
+}
+
+async function openFill(profile) {
+  if (!roomsLoaded) {
+    try {
+      const data = await api("/api/rooms");
+      state.rooms = data.rooms || [];
+    } catch (err) {
+      state.rooms = [];
+    }
+    roomsLoaded = true;
+  }
+  renderFill(profile);
+  showView("fill");
+}
+
+function showFillFieldError(field, message) {
+  const el = els.fillFields.querySelector('.fill-field-error[data-field="' + field + '"]');
+  if (el) {
+    el.textContent = message;
+    el.hidden = false;
+  }
+}
+
+function clearFillFieldErrors() {
+  els.fillFields.querySelectorAll(".fill-field-error").forEach((el) => {
+    el.textContent = "";
+    el.hidden = true;
+  });
+}
+
+function normalizeClock(hourStr, minuteStr) {
+  return parseInt(hourStr, 10) + ":" + minuteStr;
+}
+
+async function handleFillConfirm() {
+  const profile = state.profiles.find((p) => p.id === fillProfileId);
+  if (!profile) return;
+  const tpl = profile.template || "";
+  clearFillFieldErrors();
+  els.fillError.hidden = true;
+
+  let last_time = "";
+  let last_room = "";
+  let last_teacher = "";
+
+  if (tpl.indexOf("{时间}") !== -1) {
+    const startEl = document.getElementById("fill-time-start");
+    const endEl = document.getElementById("fill-time-end");
+    const start = startEl.value.trim();
+    const end = endEl.value.trim();
+    const re = /^(\d{1,2}):(\d{2})$/;
+    const sm = re.exec(start);
+    const em = re.exec(end);
+    if (!sm || !em) {
+      showFillFieldError("time", "时间格式不正确，例如 9:00。");
+      startEl.focus();
+      return;
+    }
+    const sh = parseInt(sm[1], 10), sM = parseInt(sm[2], 10);
+    const eh = parseInt(em[1], 10), eM = parseInt(em[2], 10);
+    if (sh > 23 || sM > 59 || eh > 23 || eM > 59) {
+      showFillFieldError("time", "时间格式不正确，例如 9:00。");
+      startEl.focus();
+      return;
+    }
+    if (sh * 60 + sM >= eh * 60 + eM) {
+      showFillFieldError("time", "开始时间不能晚于结束时间。");
+      endEl.focus();
+      return;
+    }
+    last_time = normalizeClock(sm[1], sm[2]) + "-" + normalizeClock(em[1], em[2]);
+  }
+
+  if (tpl.indexOf("{教室号}") !== -1) {
+    const roomEl = document.getElementById("fill-room");
+    const room = roomEl.value.trim();
+    if (!room) {
+      showFillFieldError("room", "教室号不能为空。");
+      roomEl.focus();
+      return;
+    }
+    last_room = room;
+  }
+
+  if (tpl.indexOf("{老师}") !== -1) {
+    const teacherEl = document.getElementById("fill-teacher");
+    const teacher = teacherEl.value.trim();
+    if (!teacher) {
+      showFillFieldError("teacher", "老师姓名不能为空。");
+      teacherEl.focus();
+      return;
+    }
+    last_teacher = teacher;
+  }
+
+  let res;
+  try {
+    res = await api("/api/profiles/" + fillProfileId + "/fill", {
+      method: "PUT",
+      body: { last_time, last_room, last_teacher },
+    });
+  } catch (err) {
+    els.fillError.textContent = "保存失败：数据没有写进文件，请确认数据文件可写后重试。";
+    els.fillError.hidden = false;
+    return;
+  }
+  if (res && res.error) {
+    els.fillError.textContent = "保存失败：数据没有写进文件，请确认数据文件可写后重试。";
+    els.fillError.hidden = false;
+    return;
+  }
+  showView("profiles");
+  await renderProfiles();
 }
 
 function wireEvents() {
@@ -459,6 +663,8 @@ function wireEvents() {
   });
   els.btnConfirmCancel.addEventListener("click", closeConfirm);
   els.btnConfirmDelete.addEventListener("click", handleConfirmDelete);
+  els.btnFillBack.addEventListener("click", () => showView("profiles"));
+  els.btnFillConfirm.addEventListener("click", handleFillConfirm);
   els.templateComposer.addEventListener("input", renderPreview);
   document.querySelectorAll(".chip-btn").forEach((btn) => {
     btn.addEventListener("click", () => insertToken(btn.dataset.token));
