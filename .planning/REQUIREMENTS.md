@@ -27,9 +27,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### 生成与复制 (COPY)
 
-- [ ] **COPY-01**: 同事点「确认」后弹出核对弹窗，显示完整渲染文案
-- [ ] **COPY-02**: 核对弹窗提供「修改」（返回编辑）与「确认复制」（复制到剪贴板）两个选项
-- [ ] **COPY-03**: 确认复制后完整文案进入系统剪贴板，可直接粘贴进企业微信客户群
+- [x] **COPY-01**: 同事点「确认」后弹出核对弹窗，显示完整渲染文案
+- [x] **COPY-02**: 核对弹窗提供「修改」（返回编辑）与「确认复制」（复制到剪贴板）两个选项
+- [x] **COPY-03**: 确认复制后完整文案进入系统剪贴板，可直接粘贴进企业微信客户群
 
 ## v2 Requirements
 
@@ -74,9 +74,9 @@ Which phases cover which requirements. Filled during roadmap creation.
 | FILL-02 | Phase 2 | Complete |
 | FILL-03 | Phase 2 | Complete |
 | FILL-04 | Phase 2 | Complete |
-| COPY-01 | Phase 3 | Pending |
-| COPY-02 | Phase 3 | Pending |
-| COPY-03 | Phase 3 | Pending |
+| COPY-01 | Phase 3 | Complete |
+| COPY-02 | Phase 3 | Complete |
+| COPY-03 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 12 total
