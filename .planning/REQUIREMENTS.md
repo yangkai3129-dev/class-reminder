@@ -65,12 +65,24 @@ Which phases cover which requirements. Filled during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| PROF-01 | Phase 1 | Pending |
+| PROF-02 | Phase 1 | Pending |
+| PROF-03 | Phase 1 | Pending |
+| ROOM-01 | Phase 1 | Pending |
+| ROOM-02 | Phase 2 | Pending |
+| FILL-01 | Phase 2 | Pending |
+| FILL-02 | Phase 2 | Pending |
+| FILL-03 | Phase 2 | Pending |
+| FILL-04 | Phase 2 | Pending |
+| COPY-01 | Phase 3 | Pending |
+| COPY-02 | Phase 3 | Pending |
+| COPY-03 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 12 total
-- Mapped to phases: 0
-- Unmapped: 12 ⚠️
+- Mapped to phases: 12
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-10-07*
-*Last updated: 2026-10-07 after initial definition*
+*Last updated: 2026-10-07 after roadmap creation*
