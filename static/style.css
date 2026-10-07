@@ -483,6 +483,126 @@ body {
   margin-bottom: 24px;
 }
 
+/* ---- Time wheels (picker mode) ---- */
+.wheel-group {
+  display: flex;
+  gap: 16px;
+}
+
+.wheel-column {
+  position: relative;
+  width: 120px;
+  height: 160px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.wheel-column::-webkit-scrollbar {
+  display: none;
+}
+
+.wheel-band {
+  position: absolute;
+  top: 64px;
+  left: 0;
+  right: 0;
+  height: 32px;
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+  pointer-events: none;
+}
+
+.wheel-pad {
+  height: 64px;
+}
+
+.wheel-row {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.wheel-row.selected {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+/* ---- Room chips (picker mode) ---- */
+.room-chip-group-header {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  margin: 16px 0 8px;
+}
+
+.room-chip-group-header:first-child {
+  margin-top: 0;
+}
+
+.room-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.room-chip {
+  font-family: var(--font-stack);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--divider);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.room-chip:hover {
+  background: var(--bg-secondary);
+}
+
+.room-chip.selected {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.room-empty-hint {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.room-empty-hint strong {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.room-empty-hint p {
+  margin: 0;
+}
+
+/* ---- Fill header mode toggle ---- */
+#fill-mode-toggle {
+  gap: 16px;
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
 [hidden] {
   display: none !important;
 }

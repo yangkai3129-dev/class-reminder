@@ -21,6 +21,8 @@ let editingRoomId = null;
 let draftRoomCategory = "class";
 let fillProfileId = null;
 let roomsLoaded = false;
+let inputMode = "picker";
+let selectedRoomNumber = "";
 
 const els = {
   navProfiles: document.getElementById("nav-profiles"),
@@ -60,6 +62,7 @@ const els = {
   fillError: document.getElementById("fill-error"),
   btnFillBack: document.getElementById("btn-fill-back"),
   btnFillConfirm: document.getElementById("btn-fill-confirm"),
+  fillModeToggle: document.getElementById("fill-mode-toggle"),
 };
 
 async function api(path, options = {}) {
@@ -447,7 +450,53 @@ function showView(viewName) {
   els.navRooms.classList.toggle("active", isRooms);
 }
 
-function fillTimeCardHtml() {
+function buildTimeValues() {
+  // 06:00 – 23:45, 15-minute steps → 72 values (format H:MM, no leading zero)
+  const values = [];
+  for (let m = 360; m <= 1425; m += 15) {
+    values.push(Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0"));
+  }
+  return values;
+}
+
+function snapTo15(value) {
+  if (!value) return "";
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(value).trim());
+  if (!m) return value;
+  const total = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  const snapped = Math.round(total / 15) * 15;
+  const clamped = Math.max(360, Math.min(1425, snapped));
+  return Math.floor(clamped / 60) + ":" + String(clamped % 60).padStart(2, "0");
+}
+
+function wheelHtml(id) {
+  const rows = buildTimeValues()
+    .map((v) => '<div class="wheel-row" data-value="' + v + '">' + v + "</div>")
+    .join("");
+  return (
+    '<div class="wheel-column" id="' + id + '">' +
+    '<div class="wheel-band" aria-hidden="true"></div>' +
+    '<div class="wheel-pad"></div>' +
+    rows +
+    '<div class="wheel-pad"></div>' +
+    "</div>"
+  );
+}
+
+function fillTimeCardPickerHtml() {
+  return (
+    '<div class="field fill-card">' +
+    '<label class="label">上课时间</label>' +
+    '<div class="wheel-group">' +
+    wheelHtml("fill-time-wheel-start") +
+    wheelHtml("fill-time-wheel-end") +
+    "</div>" +
+    '<p class="error fill-field-error" data-field="time" hidden></p>' +
+    "</div>"
+  );
+}
+
+function fillTimeCardDirectHtml() {
   return (
     '<div class="field fill-card">' +
     '<label class="label">上课时间</label>' +
@@ -467,7 +516,17 @@ function fillTimeCardHtml() {
   );
 }
 
-function fillRoomCardHtml() {
+function fillRoomCardPickerHtml() {
+  return (
+    '<div class="field fill-card">' +
+    '<label class="label">教室号</label>' +
+    '<div class="room-chip-container"></div>' +
+    '<p class="error fill-field-error" data-field="room" hidden></p>' +
+    "</div>"
+  );
+}
+
+function fillRoomCardDirectHtml() {
   return (
     '<div class="field fill-card">' +
     '<label class="label">教室号</label>' +
@@ -487,40 +546,59 @@ function fillTeacherCardHtml() {
   );
 }
 
-function renderFill(profile) {
+function renderFill(profile, override) {
   fillProfileId = profile.id;
   els.fillTitle.textContent = profile.name || "";
   els.fillError.hidden = true;
   els.fillError.textContent = "";
   const tpl = profile.template || "";
+  const isPicker = inputMode === "picker";
   const cards = [];
-  if (tpl.indexOf("{时间}") !== -1) cards.push(fillTimeCardHtml());
-  if (tpl.indexOf("{教室号}") !== -1) cards.push(fillRoomCardHtml());
+  if (tpl.indexOf("{时间}") !== -1) cards.push(isPicker ? fillTimeCardPickerHtml() : fillTimeCardDirectHtml());
+  if (tpl.indexOf("{教室号}") !== -1) cards.push(isPicker ? fillRoomCardPickerHtml() : fillRoomCardDirectHtml());
   if (tpl.indexOf("{老师}") !== -1) cards.push(fillTeacherCardHtml());
   els.fillFields.innerHTML = cards.join("");
 
+  const o = override || {};
+  const hasOverrideTime = o.start !== undefined && o.end !== undefined;
+  const lastTime = hasOverrideTime ? o.start + "-" + o.end : profile.last_time || "";
+  const roomVal = o.room !== undefined ? o.room : profile.last_room || "";
+  const teacherVal = o.teacher !== undefined ? o.teacher : profile.last_teacher || "";
+
   if (tpl.indexOf("{时间}") !== -1) {
-    const startEl = document.getElementById("fill-time-start");
-    const endEl = document.getElementById("fill-time-end");
-    const lastTime = profile.last_time || "";
-    if (lastTime && lastTime.indexOf("-") !== -1) {
-      const parts = lastTime.split("-");
-      startEl.value = parts[0] || "9:00";
-      endEl.value = parts[1] || "10:30";
+    if (isPicker) {
+      let startVal = "9:00";
+      let endVal = "10:30";
+      if (lastTime && lastTime.indexOf("-") !== -1) {
+        const parts = lastTime.split("-");
+        startVal = snapTo15(parts[0]);
+        endVal = snapTo15(parts[1]);
+      }
+      renderTimeWheels(startVal, endVal);
     } else {
-      startEl.value = "9:00";
-      endEl.value = "10:30";
+      const startEl = document.getElementById("fill-time-start");
+      const endEl = document.getElementById("fill-time-end");
+      if (lastTime && lastTime.indexOf("-") !== -1) {
+        const parts = lastTime.split("-");
+        startEl.value = parts[0] || "9:00";
+        endEl.value = parts[1] || "10:30";
+      } else {
+        startEl.value = "9:00";
+        endEl.value = "10:30";
+      }
     }
   }
   if (tpl.indexOf("{教室号}") !== -1) {
-    const roomEl = document.getElementById("fill-room");
-    const lastRoom = profile.last_room || "";
-    const exists = lastRoom && state.rooms.some((r) => r.number === lastRoom);
-    roomEl.value = exists ? lastRoom : "";
+    const exists = roomVal && state.rooms.some((r) => r.number === roomVal);
+    if (isPicker) {
+      selectedRoomNumber = exists ? roomVal : "";
+      renderRoomChips();
+    } else {
+      document.getElementById("fill-room").value = exists ? roomVal : "";
+    }
   }
   if (tpl.indexOf("{老师}") !== -1) {
-    const teacherEl = document.getElementById("fill-teacher");
-    teacherEl.value = profile.last_teacher || "";
+    document.getElementById("fill-teacher").value = teacherVal;
   }
 }
 
@@ -536,6 +614,151 @@ async function openFill(profile) {
   }
   renderFill(profile);
   showView("fill");
+}
+
+function getWheelValue(id) {
+  const col = document.getElementById(id);
+  return col ? col.dataset.selected || "" : "";
+}
+
+function snapWheel(col) {
+  const values = buildTimeValues();
+  const idx = Math.max(0, Math.min(values.length - 1, Math.round(col.scrollTop / 32)));
+  col.scrollTop = idx * 32;
+  const selected = values[idx];
+  col.dataset.selected = selected;
+  col.querySelectorAll(".wheel-row").forEach((row) => {
+    row.classList.toggle("selected", row.dataset.value === selected);
+  });
+}
+
+function renderTimeWheels(startValue, endValue) {
+  initTimeWheel("fill-time-wheel-start", startValue);
+  initTimeWheel("fill-time-wheel-end", endValue);
+}
+
+function initTimeWheel(id, selectedValue) {
+  const col = document.getElementById(id);
+  if (!col) return;
+  const values = buildTimeValues();
+  let idx = values.indexOf(selectedValue);
+  if (idx < 0) idx = values.indexOf("9:00");
+  col.scrollTop = idx * 32;
+
+  let scrollTimer = null;
+  col.addEventListener("scroll", () => {
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => snapWheel(col), 80);
+  });
+  col.querySelectorAll(".wheel-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      const i = values.indexOf(row.dataset.value);
+      if (i >= 0) {
+        col.scrollTop = i * 32;
+        snapWheel(col);
+      }
+    });
+  });
+  snapWheel(col);
+}
+
+function renderRoomChips() {
+  const container = els.fillFields.querySelector(".room-chip-container");
+  if (!container) return;
+  container.innerHTML = "";
+  if (state.rooms.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "room-empty-hint";
+    const title = document.createElement("strong");
+    title.textContent = "还没有教室号";
+    const body = document.createElement("p");
+    body.textContent = "请先到「教室」页添加教室号，再回来填写。";
+    empty.appendChild(title);
+    empty.appendChild(body);
+    container.appendChild(empty);
+    return;
+  }
+  const classRooms = state.rooms.filter((r) => r.category === "class");
+  const vipRooms = state.rooms.filter((r) => r.category === "vip");
+  if (classRooms.length > 0) {
+    container.appendChild(roomGroupHeader("班课教室"));
+    const group = document.createElement("div");
+    group.className = "room-chip-group";
+    classRooms.forEach((r) => group.appendChild(roomChipEl(r)));
+    container.appendChild(group);
+  }
+  if (vipRooms.length > 0) {
+    container.appendChild(roomGroupHeader("VIP教室"));
+    const group = document.createElement("div");
+    group.className = "room-chip-group";
+    vipRooms.forEach((r) => group.appendChild(roomChipEl(r)));
+    container.appendChild(group);
+  }
+}
+
+function roomGroupHeader(text) {
+  const h = document.createElement("div");
+  h.className = "room-chip-group-header";
+  h.textContent = text;
+  return h;
+}
+
+function roomChipEl(room) {
+  const chip = document.createElement("button");
+  chip.type = "button";
+  chip.className = "room-chip" + (room.number === selectedRoomNumber ? " selected" : "");
+  chip.textContent = room.number;
+  chip.addEventListener("click", () => {
+    selectedRoomNumber = room.number;
+    els.fillFields.querySelectorAll(".room-chip").forEach((c) => {
+      c.classList.toggle("selected", c.textContent === selectedRoomNumber);
+    });
+  });
+  return chip;
+}
+
+function currentFillValues() {
+  const out = { start: "", end: "", room: "", teacher: "" };
+  if (inputMode === "picker") {
+    out.start = getWheelValue("fill-time-wheel-start");
+    out.end = getWheelValue("fill-time-wheel-end");
+    out.room = selectedRoomNumber;
+  } else {
+    const startEl = document.getElementById("fill-time-start");
+    const endEl = document.getElementById("fill-time-end");
+    const roomEl = document.getElementById("fill-room");
+    out.start = startEl ? startEl.value.trim() : "";
+    out.end = endEl ? endEl.value.trim() : "";
+    out.room = roomEl ? roomEl.value.trim() : "";
+  }
+  const teacherEl = document.getElementById("fill-teacher");
+  out.teacher = teacherEl ? teacherEl.value : "";
+  return out;
+}
+
+function toggleInputMode(nextMode) {
+  if (nextMode === inputMode) return;
+  const profile = state.profiles.find((p) => p.id === fillProfileId);
+  const v = currentFillValues();
+  inputMode = nextMode;
+  if (profile) renderFill(profile, v);
+  try {
+    localStorage.setItem("inputMode", nextMode);
+  } catch (err) {
+    // ignore persistence failure
+  }
+  updateModeToggle();
+}
+
+function updateModeToggle() {
+  els.fillModeToggle.querySelectorAll(".seg-tab").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.mode === inputMode);
+  });
+}
+
+function focusFillInput(id) {
+  const el = document.getElementById(id);
+  if (el) el.focus();
 }
 
 function showFillFieldError(field, message) {
@@ -564,55 +787,52 @@ async function handleFillConfirm() {
   clearFillFieldErrors();
   els.fillError.hidden = true;
 
+  const values = currentFillValues();
   let last_time = "";
   let last_room = "";
   let last_teacher = "";
 
   if (tpl.indexOf("{时间}") !== -1) {
-    const startEl = document.getElementById("fill-time-start");
-    const endEl = document.getElementById("fill-time-end");
-    const start = startEl.value.trim();
-    const end = endEl.value.trim();
+    const start = values.start.trim();
+    const end = values.end.trim();
     const re = /^(\d{1,2}):(\d{2})$/;
     const sm = re.exec(start);
     const em = re.exec(end);
     if (!sm || !em) {
       showFillFieldError("time", "时间格式不正确，例如 9:00。");
-      startEl.focus();
+      focusFillInput("fill-time-start");
       return;
     }
     const sh = parseInt(sm[1], 10), sM = parseInt(sm[2], 10);
     const eh = parseInt(em[1], 10), eM = parseInt(em[2], 10);
     if (sh > 23 || sM > 59 || eh > 23 || eM > 59) {
       showFillFieldError("time", "时间格式不正确，例如 9:00。");
-      startEl.focus();
+      focusFillInput("fill-time-start");
       return;
     }
     if (sh * 60 + sM >= eh * 60 + eM) {
       showFillFieldError("time", "开始时间不能晚于结束时间。");
-      endEl.focus();
+      focusFillInput("fill-time-end");
       return;
     }
     last_time = normalizeClock(sm[1], sm[2]) + "-" + normalizeClock(em[1], em[2]);
   }
 
   if (tpl.indexOf("{教室号}") !== -1) {
-    const roomEl = document.getElementById("fill-room");
-    const room = roomEl.value.trim();
-    if (!room) {
+    const room = values.room.trim();
+    if (inputMode === "direct" && !room) {
       showFillFieldError("room", "教室号不能为空。");
-      roomEl.focus();
+      focusFillInput("fill-room");
       return;
     }
     last_room = room;
   }
 
   if (tpl.indexOf("{老师}") !== -1) {
-    const teacherEl = document.getElementById("fill-teacher");
-    const teacher = teacherEl.value.trim();
+    const teacher = values.teacher.trim();
     if (!teacher) {
       showFillFieldError("teacher", "老师姓名不能为空。");
-      teacherEl.focus();
+      focusFillInput("fill-teacher");
       return;
     }
     last_teacher = teacher;
@@ -665,6 +885,9 @@ function wireEvents() {
   els.btnConfirmDelete.addEventListener("click", handleConfirmDelete);
   els.btnFillBack.addEventListener("click", () => showView("profiles"));
   els.btnFillConfirm.addEventListener("click", handleFillConfirm);
+  els.fillModeToggle.querySelectorAll(".seg-tab").forEach((tab) => {
+    tab.addEventListener("click", () => toggleInputMode(tab.dataset.mode));
+  });
   els.templateComposer.addEventListener("input", renderPreview);
   document.querySelectorAll(".chip-btn").forEach((btn) => {
     btn.addEventListener("click", () => insertToken(btn.dataset.token));
@@ -673,6 +896,16 @@ function wireEvents() {
 
 async function init() {
   wireEvents();
+  let storedMode = null;
+  try {
+    storedMode = localStorage.getItem("inputMode");
+  } catch (err) {
+    storedMode = null;
+  }
+  if (storedMode === "picker" || storedMode === "direct") {
+    inputMode = storedMode;
+  }
+  updateModeToggle();
   showView("profiles");
   await renderProfiles();
 }
