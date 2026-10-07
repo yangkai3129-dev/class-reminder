@@ -23,6 +23,7 @@ let fillProfileId = null;
 let roomsLoaded = false;
 let inputMode = "picker";
 let selectedRoomNumber = "";
+let renderedText = "";
 
 const els = {
   navProfiles: document.getElementById("nav-profiles"),
@@ -63,6 +64,12 @@ const els = {
   btnFillBack: document.getElementById("btn-fill-back"),
   btnFillConfirm: document.getElementById("btn-fill-confirm"),
   fillModeToggle: document.getElementById("fill-mode-toggle"),
+  copyModal: document.getElementById("copy-modal"),
+  copyModalTitle: document.getElementById("copy-modal-title"),
+  copyPreview: document.getElementById("copy-preview"),
+  copyStatus: document.getElementById("copy-status"),
+  btnCopyBack: document.getElementById("btn-copy-back"),
+  btnCopyConfirm: document.getElementById("btn-copy-confirm"),
 };
 
 async function api(path, options = {}) {
@@ -189,6 +196,28 @@ function renderPreview() {
     preview = preview.split(token).join(SAMPLE_VALUES[token]);
   }
   els.templatePreview.textContent = preview;
+}
+
+function renderCopyText(template, last_time, last_room, last_teacher) {
+  const values = { "{时间}": last_time, "{教室号}": last_room, "{老师}": last_teacher };
+  let out = template;
+  for (const token of PLACEHOLDERS) {
+    out = out.split(token).join(values[token] || "");
+  }
+  return out;
+}
+
+function openCopyModal(profile, rendered) {
+  els.copyModalTitle.textContent = profile.name || "";
+  els.copyPreview.textContent = rendered;
+  els.copyStatus.hidden = true;
+  els.copyStatus.textContent = "";
+  els.btnCopyConfirm.textContent = "确认复制";
+  els.copyModal.hidden = false;
+}
+
+function closeCopyModal() {
+  els.copyModal.hidden = true;
 }
 
 function insertToken(token) {

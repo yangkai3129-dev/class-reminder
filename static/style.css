@@ -441,6 +441,33 @@ body {
   margin-bottom: 24px;
 }
 
+/* ---- Copy modal ---- */
+.copy-preview {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  font-family: var(--font-stack);
+  font-size: 17px;
+  line-height: 1.47;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 12px;
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 0;
+}
+
+.copy-status {
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+}
+
+.copy-status.error {
+  color: var(--danger);
+}
+
 /* ---- Fill view ---- */
 .fill-fields {
   display: flex;

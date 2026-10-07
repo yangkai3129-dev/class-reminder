@@ -125,6 +125,19 @@
     </div>
   </div>
 
+  <!-- 核对弹窗（确认 → 只读预览 → 修改/确认复制） -->
+  <div id="copy-modal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="copy-modal-title">
+      <h2 id="copy-modal-title" class="modal-title"></h2>
+      <pre id="copy-preview" class="copy-preview"></pre>
+      <p id="copy-status" class="copy-status" hidden></p>
+      <div class="modal-actions">
+        <button id="btn-copy-back" class="btn btn-secondary" type="button">修改</button>
+        <button id="btn-copy-confirm" class="btn btn-primary" type="button">确认复制</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/app.js"></script>
 </body>
 </html>
