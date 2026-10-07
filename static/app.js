@@ -954,6 +954,7 @@ async function handleFillConfirm() {
     els.fillError.hidden = false;
     return;
   }
+  Object.assign(profile, { last_time, last_room, last_teacher });
   renderedText = renderCopyText(tpl, last_time, last_room, last_teacher);
   openCopyModal(profile, renderedText);
 }
