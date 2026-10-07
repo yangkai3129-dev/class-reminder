@@ -16,14 +16,14 @@ Requirements for initial release. Each maps to roadmap phases.
 ### 教室名单 (ROOM)
 
 - [x] **ROOM-01**: 同事能维护固定教室号名单，教室分「班课教室」「VIP教室」两类（添加/编辑/删除）
-- [ ] **ROOM-02**: 同事能从教室名单点选教室号（两类分组显示），无需手输
+- [x] **ROOM-02**: 同事能从教室名单点选教室号（两类分组显示），无需手输
 
 ### 每日填写 (FILL)
 
 - [x] **FILL-01**: 同事打开某学生时，`{时间}`、`{教室号}`、`{老师}` 已预填该学生上一次的值
-- [ ] **FILL-02**: 同事能用苹果式「开始时间 + 结束时间」滚轮选择上课时间
+- [x] **FILL-02**: 同事能用苹果式「开始时间 + 结束时间」滚轮选择上课时间
 - [x] **FILL-03**: 同事能手打老师姓名
-- [ ] **FILL-04**: 同事能通过全局开关在「点选/滚轮」与「直接输入」之间切换，作用于时间、教室两字段（老师始终手打）
+- [x] **FILL-04**: 同事能通过全局开关在「点选/滚轮」与「直接输入」之间切换，作用于时间、教室两字段（老师始终手打）
 
 ### 生成与复制 (COPY)
 
@@ -69,11 +69,11 @@ Which phases cover which requirements. Filled during roadmap creation.
 | PROF-02 | Phase 1 | Complete |
 | PROF-03 | Phase 1 | Complete |
 | ROOM-01 | Phase 1 | Complete |
-| ROOM-02 | Phase 2 | Pending |
+| ROOM-02 | Phase 2 | Complete |
 | FILL-01 | Phase 2 | Complete |
-| FILL-02 | Phase 2 | Pending |
+| FILL-02 | Phase 2 | Complete |
 | FILL-03 | Phase 2 | Complete |
-| FILL-04 | Phase 2 | Pending |
+| FILL-04 | Phase 2 | Complete |
 | COPY-01 | Phase 3 | Pending |
 | COPY-02 | Phase 3 | Pending |
 | COPY-03 | Phase 3 | Pending |
