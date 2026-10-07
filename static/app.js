@@ -477,13 +477,8 @@ function renderRoomTile(room) {
   number.className = "room-tile-number";
   number.textContent = room.number;
 
-  const tag = document.createElement("div");
-  tag.className = "room-tile-tag";
-  tag.textContent = room.category === "vip" ? "VIP" : "班课";
-
   tile.appendChild(del);
   tile.appendChild(number);
-  tile.appendChild(tag);
   return tile;
 }
 

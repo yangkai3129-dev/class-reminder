@@ -34,16 +34,16 @@ body {
 }
 
 .app {
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
 /* ---- Sidebar ---- */
 #sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
   width: 240px;
-  flex-shrink: 0;
-  height: 100vh;
   overflow-y: auto;
   background: var(--bg-secondary);
   padding: 24px 0;
@@ -91,11 +91,9 @@ body {
 
 /* ---- Content ---- */
 #content {
-  flex: 1;
-  min-width: 0;
-  height: 100vh;
+  margin-left: 240px;
+  min-height: 100vh;
   background: var(--bg-primary);
-  overflow-y: auto;
 }
 
 .view {
@@ -641,6 +639,12 @@ body {
 }
 
 /* ---- Header controls (search + view toggle) ---- */
+.title-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .header-controls {
   display: flex;
   align-items: center;
@@ -802,8 +806,8 @@ body {
   background: var(--bg-primary);
   cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
   min-height: 64px;
 }
 
