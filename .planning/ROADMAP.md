@@ -58,7 +58,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — 数据闭环（后端 last_* 持久化 + 填写视图 + 预填 + 确认存值，直接输入形态）
+- [x] 02-01-PLAN.md — 数据闭环（后端 last_* 持久化 + 填写视图 + 预填 + 确认存值，直接输入形态）
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -84,5 +84,5 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 数据底座 — 档案与教室管理 | 2/2 | Complete   | 2026-10-07 |
-| 2. 每日填写 | 0/2 | Not started | - |
+| 2. 每日填写 | 1/2 | In Progress|  |
 | 3. 生成与复制 | 0/TBD | Not started | - |

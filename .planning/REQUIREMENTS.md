@@ -20,9 +20,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### 每日填写 (FILL)
 
-- [ ] **FILL-01**: 同事打开某学生时，`{时间}`、`{教室号}`、`{老师}` 已预填该学生上一次的值
+- [x] **FILL-01**: 同事打开某学生时，`{时间}`、`{教室号}`、`{老师}` 已预填该学生上一次的值
 - [ ] **FILL-02**: 同事能用苹果式「开始时间 + 结束时间」滚轮选择上课时间
-- [ ] **FILL-03**: 同事能手打老师姓名
+- [x] **FILL-03**: 同事能手打老师姓名
 - [ ] **FILL-04**: 同事能通过全局开关在「点选/滚轮」与「直接输入」之间切换，作用于时间、教室两字段（老师始终手打）
 
 ### 生成与复制 (COPY)
@@ -70,9 +70,9 @@ Which phases cover which requirements. Filled during roadmap creation.
 | PROF-03 | Phase 1 | Complete |
 | ROOM-01 | Phase 1 | Complete |
 | ROOM-02 | Phase 2 | Pending |
-| FILL-01 | Phase 2 | Pending |
+| FILL-01 | Phase 2 | Complete |
 | FILL-02 | Phase 2 | Pending |
-| FILL-03 | Phase 2 | Pending |
+| FILL-03 | Phase 2 | Complete |
 | FILL-04 | Phase 2 | Pending |
 | COPY-01 | Phase 3 | Pending |
 | COPY-02 | Phase 3 | Pending |
