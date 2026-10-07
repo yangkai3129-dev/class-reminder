@@ -1,8 +1,8 @@
 ---
 phase: 02-daily-fill
 verified: 2026-10-08T02:35:00Z
-status: human_needed
-score: 5/5 must-haves verified (automated) + 5 human UAT pending
+status: passed
+score: 5/5 must-haves verified + 5/5 human UAT
 overrides_applied: 0
 human_verification:
   - test: "打开学生即预填上次值（点档案行主区域进入填写视图）"
@@ -26,7 +26,7 @@ human_verification:
 
 **Phase Goal:** 同事打开学生档案即可确认或微调「上课时间」「教室号」「老师」三个字段
 **Verified:** 2026-10-08
-**Status:** human_needed（自动化 5/5 通过，人工 UAT 5 项待确认）
+**Status:** passed（自动化 5/5 通过，人工 UAT 5/5 通过）
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
@@ -116,13 +116,13 @@ human_verification:
 
 无 TBD/FIXME/XXX/TODO/HACK 债务标记；无空实现/桩代码；无 console.log 占位实现。`return {}`（_read_body 空 body）、`catch (err) {}`（localStorage/rooms 拉取失败降级）均为合法容错。
 
-### Human Verification — Pending (0/5)
+### Human Verification — Passed (5/5)
 
-人工 UAT 5 项待确认（记录于 02-HUMAN-UAT.md）。核心功能已通过自动化验证（curl 全链路 + snap 单元测试 + 静态断言 + 回归），但滚轮/点选/切换的真实浏览器视觉与交互需人工确认。
+人工 UAT 5 项全部通过（记录于 02-HUMAN-UAT.md，2026-10-08）。
 
 ### Gaps Summary
 
-无 gaps。5 项 ROADMAP Success Criteria、6 项 PLAN must_haves 均通过代码审查 + 真实运行验证。唯一无法无头验证的是真实浏览器中的视觉还原与交互（滚轮手感、chip 选中态、toggle 切换、跨会话持久化），故状态为 human_needed 而非 passed。
+无 gaps。5 项 ROADMAP Success Criteria、6 项 PLAN must_haves 均通过代码审查 + 真实运行验证；真实浏览器视觉与交互已由人工 UAT 确认通过（5/5）。
 
 ---
 
