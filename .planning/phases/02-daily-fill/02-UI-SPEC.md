@@ -1,7 +1,7 @@
 ---
 phase: 2
 slug: daily-fill
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none (Apple Design System — manual CSS tokens, inherited from Phase 1)
 created: 2026-10-07
@@ -260,11 +260,13 @@ The UI contract requires two persistence capabilities that the planner must map 
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS (FLAG — CTA 「确认」 is single-word; see recommendation below)
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-10-07
+
+**Non-blocking recommendation (Dimension 1):** Primary CTA 「确认」 is a single-word verb with no noun. Functional and consistent with ROADMAP Phase 3 language, so accepted as-is; planner may rename to 「保存并返回」 if Phase 2 vs Phase 3 confirm semantics need clearer separation.
