@@ -28,7 +28,21 @@
         </div>
       </section>
 
-      <section id="rooms-view" class="view" hidden></section>
+      <section id="rooms-view" class="view" hidden>
+        <header class="view-header">
+          <h2 id="rooms-title" class="view-title">教室</h2>
+          <button id="btn-new-room" class="btn btn-primary" type="button">添加教室</button>
+        </header>
+        <div id="room-category-tabs" class="segmented" role="tablist">
+          <button class="seg-tab active" data-category="class" type="button" role="tab">班课教室</button>
+          <button class="seg-tab" data-category="vip" type="button" role="tab">VIP教室</button>
+        </div>
+        <div id="room-list" class="list"></div>
+        <div id="rooms-empty" class="empty" hidden>
+          <h3 class="empty-title">还没有教室号</h3>
+          <p class="empty-body">点「添加教室」，按「班课教室」或「VIP教室」分类加入第一个教室号。</p>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -55,6 +69,29 @@
       <div class="modal-actions">
         <button id="btn-editor-cancel" class="btn btn-secondary" type="button">放弃创建</button>
         <button id="btn-editor-confirm" class="btn btn-primary" type="button">创建档案</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 教室编辑器（添加/编辑） -->
+  <div id="room-editor" class="modal-backdrop" hidden>
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="room-editor-title">
+      <h2 id="room-editor-title" class="modal-title">添加教室</h2>
+      <div class="field">
+        <label class="label" for="room-number">教室号</label>
+        <input id="room-number" class="input" type="text" placeholder="例如：2802">
+      </div>
+      <div class="field">
+        <label class="label">类型</label>
+        <div id="room-editor-tabs" class="segmented">
+          <button class="seg-tab active" data-category="class" type="button">班课教室</button>
+          <button class="seg-tab" data-category="vip" type="button">VIP教室</button>
+        </div>
+      </div>
+      <div id="room-editor-error" class="error" hidden></div>
+      <div class="modal-actions">
+        <button id="btn-room-cancel" class="btn btn-secondary" type="button">放弃添加</button>
+        <button id="btn-room-confirm" class="btn btn-primary" type="button">保存教室</button>
       </div>
     </div>
   </div>

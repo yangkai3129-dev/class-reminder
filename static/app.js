@@ -16,6 +16,9 @@ const state = {
 let editorMode = "create";
 let editingProfileId = null;
 let confirmTarget = null;
+let roomEditorMode = "create";
+let editingRoomId = null;
+let draftRoomCategory = "class";
 
 const els = {
   navProfiles: document.getElementById("nav-profiles"),
@@ -33,6 +36,17 @@ const els = {
   editorError: document.getElementById("editor-error"),
   btnEditorCancel: document.getElementById("btn-editor-cancel"),
   btnEditorConfirm: document.getElementById("btn-editor-confirm"),
+  btnNewRoom: document.getElementById("btn-new-room"),
+  roomCategoryTabs: document.getElementById("room-category-tabs"),
+  roomList: document.getElementById("room-list"),
+  roomsEmpty: document.getElementById("rooms-empty"),
+  roomEditor: document.getElementById("room-editor"),
+  roomEditorTitle: document.getElementById("room-editor-title"),
+  roomNumber: document.getElementById("room-number"),
+  roomEditorTabs: document.getElementById("room-editor-tabs"),
+  roomEditorError: document.getElementById("room-editor-error"),
+  btnRoomCancel: document.getElementById("btn-room-cancel"),
+  btnRoomConfirm: document.getElementById("btn-room-confirm"),
   confirmModal: document.getElementById("confirm-modal"),
   confirmTitle: document.getElementById("confirm-title"),
   confirmBody: document.getElementById("confirm-body"),
@@ -244,6 +258,136 @@ async function handleEditorConfirm() {
   await renderProfiles();
 }
 
+function renderRoomCategoryTabs() {
+  els.roomCategoryTabs.querySelectorAll(".seg-tab").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.category === state.activeRoomCategory);
+  });
+}
+
+function renderRoomEditorTabs() {
+  els.roomEditorTabs.querySelectorAll(".seg-tab").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.category === draftRoomCategory);
+  });
+}
+
+function switchRoomCategory(cat) {
+  state.activeRoomCategory = cat;
+  renderRoomCategoryTabs();
+  renderRooms();
+}
+
+function renderRoomRow(room) {
+  const row = document.createElement("div");
+  row.className = "profile-row";
+
+  const main = document.createElement("div");
+  main.className = "profile-row-main";
+
+  const number = document.createElement("div");
+  number.className = "room-number";
+  number.textContent = room.number;
+
+  main.appendChild(number);
+
+  const actions = document.createElement("div");
+  actions.className = "row-actions";
+
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "link-action";
+  editBtn.textContent = "编辑";
+  editBtn.addEventListener("click", () => openRoomEditor("edit", room));
+
+  const delBtn = document.createElement("button");
+  delBtn.type = "button";
+  delBtn.className = "link-action link-danger";
+  delBtn.textContent = "删除";
+  delBtn.addEventListener("click", () => openDeleteConfirm("room", room));
+
+  actions.appendChild(editBtn);
+  actions.appendChild(delBtn);
+
+  row.appendChild(main);
+  row.appendChild(actions);
+  return row;
+}
+
+async function renderRooms() {
+  let data;
+  try {
+    data = await api("/api/rooms");
+  } catch (err) {
+    data = { rooms: [] };
+  }
+  state.rooms = data.rooms || [];
+  renderRoomCategoryTabs();
+  const rooms = state.rooms.filter((r) => r.category === state.activeRoomCategory);
+  els.roomList.innerHTML = "";
+  if (rooms.length === 0) {
+    els.roomsEmpty.hidden = false;
+  } else {
+    els.roomsEmpty.hidden = true;
+    for (const room of rooms) {
+      els.roomList.appendChild(renderRoomRow(room));
+    }
+  }
+}
+
+function openRoomEditor(mode, room) {
+  roomEditorMode = mode || "create";
+  editingRoomId = room ? room.id : null;
+  els.roomEditorError.hidden = true;
+  els.roomEditorError.textContent = "";
+  if (roomEditorMode === "edit" && room) {
+    els.roomEditorTitle.textContent = "编辑教室";
+    els.btnRoomConfirm.textContent = "保存修改";
+    els.btnRoomCancel.textContent = "放弃修改";
+    els.roomNumber.value = room.number || "";
+    draftRoomCategory = room.category || "class";
+  } else {
+    els.roomEditorTitle.textContent = "添加教室";
+    els.btnRoomConfirm.textContent = "保存教室";
+    els.btnRoomCancel.textContent = "放弃添加";
+    els.roomNumber.value = "";
+    draftRoomCategory = state.activeRoomCategory;
+  }
+  renderRoomEditorTabs();
+  els.roomEditor.hidden = false;
+  els.roomNumber.focus();
+}
+
+function closeRoomEditor() {
+  els.roomEditor.hidden = true;
+}
+
+async function handleRoomConfirm() {
+  const number = els.roomNumber.value.trim();
+  if (!number) {
+    els.roomEditorError.textContent = "教室号不能为空。";
+    els.roomEditorError.hidden = false;
+    return;
+  }
+  let res;
+  try {
+    if (roomEditorMode === "edit" && editingRoomId) {
+      res = await api("/api/rooms/" + editingRoomId, { method: "PUT", body: { number, category: draftRoomCategory } });
+    } else {
+      res = await api("/api/rooms", { method: "POST", body: { number, category: draftRoomCategory } });
+    }
+  } catch (err) {
+    els.roomEditorError.textContent = "保存失败：数据没有写进文件，请确认数据文件可写后重试。";
+    els.roomEditorError.hidden = false;
+    return;
+  }
+  if (res && res.error) {
+    els.roomEditorError.textContent = res.error;
+    els.roomEditorError.hidden = false;
+    return;
+  }
+  closeRoomEditor();
+  await renderRooms();
+}
+
 function openDeleteConfirm(kind, item) {
   confirmTarget = { kind, item };
   if (kind === "profile") {
@@ -267,12 +411,18 @@ async function handleConfirmDelete() {
   try {
     if (target.kind === "profile") {
       await api("/api/profiles/" + target.item.id, { method: "DELETE" });
+    } else if (target.kind === "room") {
+      await api("/api/rooms/" + target.item.id, { method: "DELETE" });
     }
   } catch (err) {
     // 删除失败：关闭弹窗后重新渲染，该项仍在列表
   }
   closeConfirm();
-  await renderProfiles();
+  if (target.kind === "room") {
+    await renderRooms();
+  } else {
+    await renderProfiles();
+  }
 }
 
 function showView(viewName) {
@@ -286,11 +436,27 @@ function showView(viewName) {
 
 function wireEvents() {
   els.navProfiles.addEventListener("click", () => showView("profiles"));
-  els.navRooms.addEventListener("click", () => showView("rooms"));
+  els.navRooms.addEventListener("click", () => {
+    showView("rooms");
+    renderRooms();
+  });
   els.btnNewProfile.addEventListener("click", () => openProfileEditor("create"));
   els.profilesEmpty.addEventListener("click", () => openProfileEditor("create"));
   els.btnEditorCancel.addEventListener("click", closeEditor);
   els.btnEditorConfirm.addEventListener("click", handleEditorConfirm);
+  els.btnNewRoom.addEventListener("click", () => openRoomEditor("create"));
+  els.roomsEmpty.addEventListener("click", () => openRoomEditor("create"));
+  els.btnRoomCancel.addEventListener("click", closeRoomEditor);
+  els.btnRoomConfirm.addEventListener("click", handleRoomConfirm);
+  els.roomCategoryTabs.querySelectorAll(".seg-tab").forEach((tab) => {
+    tab.addEventListener("click", () => switchRoomCategory(tab.dataset.category));
+  });
+  els.roomEditorTabs.querySelectorAll(".seg-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      draftRoomCategory = tab.dataset.category;
+      renderRoomEditorTabs();
+    });
+  });
   els.btnConfirmCancel.addEventListener("click", closeConfirm);
   els.btnConfirmDelete.addEventListener("click", handleConfirmDelete);
   els.templateComposer.addEventListener("input", renderPreview);

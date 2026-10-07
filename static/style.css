@@ -214,6 +214,48 @@ body {
   color: var(--danger);
 }
 
+/* ---- Segmented control (Apple tab style) ---- */
+.segmented {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--divider);
+  margin-bottom: 24px;
+}
+
+.seg-tab {
+  font-family: var(--font-stack);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.seg-tab.active {
+  color: var(--accent);
+}
+
+.seg-tab.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.room-number {
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  color: var(--text-primary);
+}
+
 /* ---- Placeholder chips ---- */
 .chip {
   display: inline-block;
