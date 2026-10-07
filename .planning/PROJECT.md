@@ -19,12 +19,13 @@
 - ✓ 同事用苹果式「开始时间 + 结束时间」滚轮修改时间；教室号从名单点选 — Phase 2
 - ✓ 同事能手打老师姓名 — Phase 2
 - ✓ 同事能通过全局开关在「点选/滚轮」与「直接输入」间切换（作用于时间、教室两字段）— Phase 2
+- ✓ 同事点确认后弹出核对弹窗，显示完整渲染文案 — Phase 3
+- ✓ 核对弹窗提供「修改」（返回编辑）和「确认」（复制到剪贴板）两个选项 — Phase 3
+- ✓ 确认后完整文案进入系统剪贴板，可直接粘贴进企业微信 — Phase 3
 
 ### Active
 
-- [ ] 同事点确认后弹出核对弹窗，显示完整渲染文案
-- [ ] 核对弹窗提供「修改」（返回编辑）和「确认」（复制到剪贴板）两个选项
-- [ ] 确认后完整文案进入系统剪贴板，可直接粘贴进企业微信
+*(none — all v1 requirements validated)*
 
 ### Out of Scope
 
@@ -62,6 +63,8 @@
 | 服务器只 bind 127.0.0.1 | 零第三方依赖、无鉴权的单用户本地工具，本机回环即安全边界 | ✓ 落地 Phase 1 |
 | 教室分类内部值存 `class`/`vip`（不存中文） | 数据层稳定，中文「班课教室」「VIP教室」仅前端映射 | ✓ 落地 Phase 1 |
 | 新增 `--no-browser` 启动参数 | 供自动化验证/CI 抑制浏览器弹窗，默认仍自动打开 | ✓ 落地 Phase 1 |
+| 复制用三级降级链（writeText → execCommand → 手动 ⌘C 全选） | 保证「一键复制」在 Safari/Chrome 各种受限场景永不卡死 | ✓ 落地 Phase 3 |
+| 核对弹窗只读渲染走 textContent | 用户自输入数据进 DOM 的唯一入口，防 XSS | ✓ 落地 Phase 3 |
 
 ## Evolution
 
@@ -81,4 +84,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-08 after Phase 2*
+*Last updated: 2026-10-08 after Phase 3*
