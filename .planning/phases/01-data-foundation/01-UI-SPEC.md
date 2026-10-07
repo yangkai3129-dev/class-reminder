@@ -85,7 +85,7 @@ Neutrals (locked to Apple HIG values):
 | divider / border | `#d2d2d7` | Input borders, list-row separators |
 
 Accent reserved for (explicit list — never a blanket "all interactive elements"):
-1. Primary CTA buttons (「新建档案」「添加教室」「保存」)
+1. Primary CTA buttons — the header CTAs 「新建档案」「添加教室」 and the editor confirm buttons 「创建档案」「保存修改」「保存教室」
 2. Text-link actions (「编辑」) and the active navigation item in the sidebar
 3. Selected category tab (segmented control) indicator
 4. Focus ring on any focused input/button
@@ -99,18 +99,29 @@ Anything not in this list uses `#1d1d1f` (text) or neutral surfaces. No gradient
 
 | Element | Copy |
 |---------|------|
-| Primary CTA (档案) | 「新建档案」 |
-| Primary CTA (教室) | 「添加教室」 |
-| Secondary CTA | 「保存」 (confirm) / 「取消」 (dismiss) |
-| Edit action | 「编辑」 |
+| Primary CTA — 档案 header | 「新建档案」 |
+| Primary CTA — 教室 header | 「添加教室」 |
+| 档案 editor — create confirm | 「创建档案」 |
+| 档案 editor — create dismiss | 「放弃创建」 |
+| 档案 editor — edit confirm | 「保存修改」 |
+| 档案 editor — edit dismiss | 「放弃修改」 |
+| 教室 editor — add confirm | 「保存教室」 |
+| 教室 editor — add dismiss | 「放弃添加」 |
+| 教室 editor — edit confirm | 「保存修改」 |
+| 教室 editor — edit dismiss | 「放弃修改」 |
+| Row action — edit | 「编辑」 |
+| Row action — delete | 「删除」 |
 | Empty state heading (档案) | 「还没有学生档案」 |
 | Empty state body (档案) | 「点「新建档案」，输入学生/班级名称和提醒模板，建好第一份档案。」 |
 | Empty state heading (教室) | 「还没有教室号」 |
 | Empty state body (教室) | 「点「添加教室」，按「班课教室」或「VIP教室」分类加入第一个教室号。」 |
 | Error state (save failure) | 「保存失败」 — 「数据没有写进文件，请确认数据文件可写后重试。」 |
-| Error state (validation) | 「模板里至少要有一个占位符（{时间}、{教室号} 或 {老师}）。」 |
+| Error state (validation — 档案) | 「模板里至少要有一个占位符（{时间}、{教室号} 或 {老师}）。」 |
+| Error state (validation — 教室号) | 「教室号不能为空。」 |
 | Destructive confirmation (档案) | 「删除档案」 — 「确定删除「{名称}」吗？此操作无法撤销。」 |
 | Destructive confirmation (教室) | 「删除教室」 — 「确定删除教室号「{号码}」吗？」 |
+| Destructive confirmation — confirm | 「删除」 |
+| Destructive confirmation — dismiss | 「取消」 (kept only as the paired secondary dismiss beside the specific destructive primary 「删除」) |
 
 Template composer helper copy:
 
@@ -125,7 +136,7 @@ Template composer helper copy:
 
 ## Screen Inventory & Navigation
 
-Single-page app. Persistent shell + two content views (Phase 1). Phase 2 (daily fill) and Phase 3 (copy) will render inside the 档案 view — the shell reserves this by making "open a profile" the primary row interaction.
+Single-page app. Persistent shell + three content views (Phase 1). Phase 2 (daily fill) and Phase 3 (copy) will render inside the 档案 view — the shell reserves this by making "open a profile" the primary row interaction.
 
 **Shell (persistent)**
 - Left sidebar (240px, background `#f5f5f7`): app title 「上课提醒」 at top; two nav items 「档案」「教室」.
@@ -135,24 +146,32 @@ Single-page app. Persistent shell + two content views (Phase 1). Phase 2 (daily 
 **View 1 — 档案 (Profiles)** *(entry point that Phase 2/3 extend)*
 - Header: page title 「档案」 (34px) left; primary button 「新建档案」 (blue, 40px) right.
 - List of profile rows. Each row: name (17px/600), template preview line (13px, `#6e6e73`, truncated, placeholders shown as blue chips). Row actions 「编辑」(blue link) and 「删除」(red link) on the right.
-- Primary row click and 「编辑」 both open the profile editor (View 3).
+- Primary row click and 「编辑」 both open the profile editor (View 4).
 - Empty state when no profiles.
 
 **View 2 — 教室 (Rooms)**
 - Header: page title 「教室」 left; primary button 「添加教室」 right.
 - Segmented control with two tabs: 「班课教室」 | 「VIP教室」. Active tab text `#0066cc` with a 2px blue underline (Apple's segmented-control style); inactive tabs `#1d1d1f`.
-- Room list for the active category. Each row: room number (17px) + 「编辑」「删除」 actions. Adding a room assigns it to the currently active category.
+- Room list for the active category. Each row: room number (17px) + 「编辑」「删除」 actions. 「添加教室」 opens the room editor (View 3) in add mode, pre-selecting the currently active category; 「编辑」 opens the room editor (View 3) in edit mode.
 - Empty state per category.
 
-**View 3 — 档案编辑器 (Profile editor — create & edit, modal dialog)**
+**View 3 — 教室编辑器 (Room editor — add & edit, modal dialog)**
+- Centered modal (max-width 480px, background `#ffffff`, radius `6px`) over a dimmed backdrop `rgba(0,0,0,0.4)` (dimming, not a shadow, provides separation).
+- Title: 「添加教室」 (add mode) or 「编辑教室」 (edit mode), 22px/600.
+- Field 1 — 「教室号」: text input (17px), placeholder 「例如：2802」. This is the editable identifier — a room can be renumbered. Empty value triggers the inline error 「教室号不能为空。」.
+- Field 2 — 「类型」: segmented control with two options 「班课教室」 | 「VIP教室」 (same style as View 2: active `#0066cc` + 2px blue underline, inactive `#1d1d1f`). Editing a room can move it between categories.
+- Add mode: pre-selected category = the tab that was active when 「添加教室」 was clicked. Edit mode: pre-filled with the room's current number and category.
+- Actions — add mode: 「放弃添加」(secondary) + 「保存教室」(primary blue). Edit mode: 「放弃修改」(secondary) + 「保存修改」(primary blue).
+
+**View 4 — 档案编辑器 (Profile editor — create & edit, modal dialog)**
 - Centered modal (max-width 560px, background `#ffffff`, radius `6px`) over a dimmed backdrop `rgba(0,0,0,0.4)` (dimming, not a shadow, provides separation).
-- Title: 「新建档案」 or 「编辑档案」 (22px/600).
+- Title: 「新建档案」 (create) or 「编辑档案」 (edit), 22px/600.
 - Field 1 — 「学生/班级名称」: text input (17px), placeholder 「例如：张三 · 海生2册」.
 - Field 2 — 「提醒模板」: composer area (contenteditable, min-height 120px, white, 1px `#d2d2d7` border, `6px` radius) with three insert buttons above it (「{时间}」「{教室号}」「{老师}」). Inserted tokens render as inline blue chips. Fixed text is typed normally.
 - Live preview box (background `#f5f5f7`, radius `6px`) showing the template with sample values substituted (e.g. 9:00-10:30 / 2802 / 王国香).
-- Actions: 「取消」(secondary) + 「保存」(primary blue).
+- Actions — create mode: 「放弃创建」(secondary) + 「创建档案」(primary blue). Edit mode: 「放弃修改」(secondary) + 「保存修改」(primary blue).
 
-**View 4 — 删除确认 (Delete confirmation, modal dialog)**
+**View 5 — 删除确认 (Delete confirmation, modal dialog)**
 - Centered modal, title 「删除档案」/「删除教室」, body the confirmation copy above, actions 「取消」(secondary) + 「删除」(destructive `#ff3b30`).
 
 ---
@@ -171,7 +190,7 @@ Single-page app. Persistent shell + two content views (Phase 1). Phase 2 (daily 
 | List row | Full-width, no border-radius, no shadow; separated by 1px `#d2d2d7` bottom border or background alternation; `md`(16px) internal padding |
 | Segmented control | Two-tab, text 17px; active tab `#0066cc` + 2px blue underline; inactive `#1d1d1f` |
 | Sidebar nav item | 17px/400 text; active `#0066cc` on light blue tint; `md`(16px) padding |
-| Modal dialog | Centered, `#ffffff`, `6px` radius, max-width 560px, `lg`(24px) internal padding; dimmed backdrop `rgba(0,0,0,0.4)`, no drop shadow |
+| Modal dialog | Centered, `#ffffff`, `6px` radius, `lg`(24px) internal padding; dimmed backdrop `rgba(0,0,0,0.4)`, no drop shadow; max-width 560px (档案 editor) / 480px (教室 editor) |
 | Empty state | Centered, heading 22px/600 `#1d1d1f`, body 17px/400 `#6e6e73` |
 
 ---
