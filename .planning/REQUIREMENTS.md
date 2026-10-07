@@ -15,7 +15,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### 教室名单 (ROOM)
 
-- [ ] **ROOM-01**: 同事能维护固定教室号名单，教室分「班课教室」「VIP教室」两类（添加/编辑/删除）
+- [x] **ROOM-01**: 同事能维护固定教室号名单，教室分「班课教室」「VIP教室」两类（添加/编辑/删除）
 - [ ] **ROOM-02**: 同事能从教室名单点选教室号（两类分组显示），无需手输
 
 ### 每日填写 (FILL)
@@ -68,7 +68,7 @@ Which phases cover which requirements. Filled during roadmap creation.
 | PROF-01 | Phase 1 | Complete |
 | PROF-02 | Phase 1 | Complete |
 | PROF-03 | Phase 1 | Complete |
-| ROOM-01 | Phase 1 | Pending |
+| ROOM-01 | Phase 1 | Complete |
 | ROOM-02 | Phase 2 | Pending |
 | FILL-01 | Phase 2 | Pending |
 | FILL-02 | Phase 2 | Pending |
