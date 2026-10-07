@@ -96,6 +96,30 @@ def validate_profile(body):
     return name, template, None
 
 
+def new_room(number, category):
+    return {
+        "id": "r_" + uuid.uuid4().hex[:12],
+        "number": number,
+        "category": category,
+    }
+
+
+def validate_room(body):
+    """校验并清洗教室输入，返回 (number, category, error)。合法时 error 为 None。"""
+    if not isinstance(body, dict):
+        return None, None, "教室号不能为空。"
+    number = body.get("number")
+    category = body.get("category")
+    if not isinstance(number, str):
+        number = str(number) if number is not None else ""
+    number = number.strip()
+    if not number:
+        return None, None, "教室号不能为空。"
+    if category not in ("class", "vip"):
+        return None, None, "教室类型无效。"
+    return number, category, None
+
+
 class ReminderHandler(http.server.BaseHTTPRequestHandler):
     store = JsonStore(DATA_PATH)
 
@@ -167,6 +191,17 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
             data["profiles"].append(profile)
             self.store.save(data)
             self._send_json(201, {"profile": profile})
+        elif path == "/api/rooms":
+            body = self._read_body()
+            number, category, err = validate_room(body)
+            if err:
+                self._send_json(400, {"error": err})
+                return
+            room = new_room(number, category)
+            data = self.store.load()
+            data["rooms"].append(room)
+            self.store.save(data)
+            self._send_json(201, {"room": room})
         else:
             self._send_json(404, {"error": "Not Found"})
 
@@ -190,6 +225,22 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
                     self._send_json(200, {"profile": profile})
                     return
             self._send_json(404, {"error": "Not Found"})
+        elif path.startswith("/api/rooms/"):
+            room_id = path[len("/api/rooms/"):]
+            body = self._read_body()
+            number, category, err = validate_room(body)
+            if err:
+                self._send_json(400, {"error": err})
+                return
+            data = self.store.load()
+            for room in data["rooms"]:
+                if room["id"] == room_id:
+                    room["number"] = number
+                    room["category"] = category
+                    self.store.save(data)
+                    self._send_json(200, {"room": room})
+                    return
+            self._send_json(404, {"error": "Not Found"})
         else:
             self._send_json(404, {"error": "Not Found"})
 
@@ -202,6 +253,16 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
             for i, profile in enumerate(data["profiles"]):
                 if profile["id"] == profile_id:
                     del data["profiles"][i]
+                    self.store.save(data)
+                    self._send_empty(204)
+                    return
+            self._send_json(404, {"error": "Not Found"})
+        elif path.startswith("/api/rooms/"):
+            room_id = path[len("/api/rooms/"):]
+            data = self.store.load()
+            for i, room in enumerate(data["rooms"]):
+                if room["id"] == room_id:
+                    del data["rooms"][i]
                     self.store.save(data)
                     self._send_empty(204)
                     return
