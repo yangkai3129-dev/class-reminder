@@ -10,7 +10,9 @@ import argparse
 import http.server
 import json
 import os
+import uuid
 import webbrowser
+from datetime import datetime, timezone
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(SCRIPT_DIR, "data.json")
@@ -61,6 +63,39 @@ class JsonStore:
         os.replace(tmp_path, self.path)
 
 
+def now_iso():
+    return datetime.now(timezone.utc).astimezone().isoformat()
+
+
+def new_profile(name, template):
+    now = now_iso()
+    return {
+        "id": "p_" + uuid.uuid4().hex[:12],
+        "name": name,
+        "template": template,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+
+def validate_profile(body):
+    """校验并清洗档案输入，返回 (name, template, error)。合法时 error 为 None。"""
+    if not isinstance(body, dict):
+        return None, None, "模板里至少要有一个占位符（{时间}、{教室号} 或 {老师}）。"
+    name = body.get("name")
+    template = body.get("template")
+    if not isinstance(name, str):
+        name = str(name) if name is not None else ""
+    if not isinstance(template, str):
+        template = str(template) if template is not None else ""
+    name = name.strip()
+    if not name:
+        return None, None, "学生/班级名称不能为空。"
+    if not any(p in template for p in PLACEHOLDERS):
+        return None, None, "模板里至少要有一个占位符（{时间}、{教室号} 或 {老师}）。"
+    return name, template, None
+
+
 class ReminderHandler(http.server.BaseHTTPRequestHandler):
     store = JsonStore(DATA_PATH)
 
@@ -80,6 +115,16 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Length", "0")
         self.end_headers()
+
+    def _read_body(self):
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0:
+            return {}
+        raw = self.rfile.read(length)
+        try:
+            return json.loads(raw.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return {}
 
     def _serve_static(self, path):
         filename = STATIC_ROUTES.get(path)
@@ -108,6 +153,22 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
             self._send_json(200, {"rooms": self.store.load()["rooms"]})
         else:
             self._serve_static(path)
+
+    def do_POST(self):
+        path = self.path.split("?", 1)[0]
+        if path == "/api/profiles":
+            body = self._read_body()
+            name, template, err = validate_profile(body)
+            if err:
+                self._send_json(400, {"error": err})
+                return
+            profile = new_profile(name, template)
+            data = self.store.load()
+            data["profiles"].append(profile)
+            self.store.save(data)
+            self._send_json(201, {"profile": profile})
+        else:
+            self._send_json(404, {"error": "Not Found"})
 
 
 def main():
