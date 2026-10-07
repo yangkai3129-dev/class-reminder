@@ -236,6 +236,26 @@ function selectRenderedText() {
   sel.addRange(range);
 }
 
+function legacyCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, ta.value.length);
+  let ok = false;
+  try {
+    ok = document.execCommand("copy", false, null);
+  } catch (e) {
+    ok = false;
+  } finally {
+    document.body.removeChild(ta);
+  }
+  return ok;
+}
+
 async function handleCopyConfirm() {
   let ok = false;
   if (navigator.clipboard && window.isSecureContext) {
@@ -246,6 +266,7 @@ async function handleCopyConfirm() {
       ok = false;
     }
   }
+  if (!ok) ok = legacyCopy(renderedText);
   if (ok) {
     showCopyStatus("已复制到剪贴板", false);
     copyDone = true;
