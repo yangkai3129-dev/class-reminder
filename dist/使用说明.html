@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>上课提醒 · 使用说明</title>
+  <style>
+    :root {
+      --accent: #0066cc;
+      --text: #1d1d1f;
+      --text-2: #6e6e73;
+      --bg: #ffffff;
+      --bg-2: #f5f5f7;
+      --divider: #d2d2d7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+      font-size: 17px;
+      font-weight: 400;
+      line-height: 1.47;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 72px 24px 96px;
+    }
+    h1 {
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.022em;
+      line-height: 1.1;
+      margin-bottom: 14px;
+    }
+    .intro {
+      font-size: 19px;
+      line-height: 1.4;
+      color: var(--text-2);
+      margin-bottom: 44px;
+    }
+    h2 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.018em;
+      margin: 36px 0 14px;
+    }
+    h3 {
+      font-size: 19px;
+      font-weight: 600;
+      margin: 22px 0 10px;
+    }
+    p { margin: 0 0 10px; }
+    ul, ol { margin: 0 0 14px; padding-left: 24px; }
+    li { margin: 0 0 7px; }
+    code {
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 15px;
+      background: var(--bg-2);
+      padding: 2px 6px;
+      border-radius: 5px;
+      white-space: nowrap;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    hr {
+      border: none;
+      border-top: 1px solid var(--divider);
+      margin: 32px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>上课提醒 · 使用说明</h1>
+    <p class="intro">一个小工具：给每个学生建好一份提醒模板，之后每天只需确认三个空（上课时间、教室号、教师），点一下复制，再粘贴进企业微信客户群就行。</p>
+
+    <h2>一、第一次使用（只需做一次）</h2>
+
+    <h3>1. 装 Python（这个工具靠它运行）</h3>
+    <ul>
+      <li><strong>Mac</strong>：双击 <code>启动.command</code>，如果弹出「需要安装命令行工具」，点「安装」，等一两分钟装完即可。</li>
+      <li><strong>Windows</strong>：
+        <ol>
+          <li>用浏览器打开 <a href="https://www.python.org/downloads/">https://www.python.org/downloads/</a>，点黄色按钮下载 Python。</li>
+          <li>运行下载的安装包，<strong>务必勾选最下面一行「Add python.exe to PATH」</strong>，再点「Install Now」。</li>
+          <li>装完回到本文件夹，接着做下一步。</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h3>2. 首次双击被拦怎么办</h3>
+    <ul>
+      <li><strong>Mac</strong>：右键点 <code>启动.command</code> → 选「打开」→ 再点「打开」。之后就能直接双击了。</li>
+      <li><strong>Windows</strong>：如果弹出蓝色安全提示，点「更多信息」→「仍要运行」。</li>
+    </ul>
+
+    <hr>
+
+    <h2>二、每天怎么用</h2>
+    <ol>
+      <li><strong>双击启动</strong>：Mac 点 <code>启动.command</code>，Windows 点 <code>启动.bat</code>。会自动打开一个网页。</li>
+      <li><strong>第一次：建档案</strong>（以后不用再动）
+        <ul>
+          <li>点「新建档案」→ 填学生/班级名称。</li>
+          <li>在模板框里写平时发给家长的文案，其中「上课时间、教室号、教师」三处，用上方按钮分别插入 <code>{时间}</code>、<code>{教室号}</code>、<code>{教师}</code>。</li>
+          <li>点「创建档案」。每个学生建一份。</li>
+        </ul>
+      </li>
+      <li><strong>每天发提醒</strong>：点学生名字 → 三个空已经带出上一次的值，微调一下 → 点「确认」→ 核对文案 → 点「确认复制」→ 到企业微信客户群粘贴发送。</li>
+      <li>用完关掉网页和那个黑色窗口即可。</li>
+    </ol>
+
+    <hr>
+
+    <h2>三、数据在哪、怎么备份 / 交接</h2>
+    <ul>
+      <li>你的所有数据都存在本文件夹里一个叫 <code>data.json</code> 的文件中。</li>
+      <li><strong>备份</strong>：把这个 <code>data.json</code> 复制到 U 盘或网盘即可。</li>
+      <li><strong>交接</strong>：把 <code>data.json</code> 发给接手你学生的人，Ta 用这个文件替换掉自己文件夹里的同名文件即可。</li>
+    </ul>
+
+    <hr>
+
+    <h2>四、常见问题</h2>
+    <ul>
+      <li><strong>教室号要新增</strong>：网页左侧点「教室」→「添加教室」，选「班课教室」或「VIP 教室」。</li>
+      <li><strong>点确认后数据就存好了吗</strong>：是的，每次点「确认」都会立刻写进 <code>data.json</code>，关窗口不丢。</li>
+      <li><strong>想改某个学生的模板文案</strong>：点学生那行的「编辑」。</li>
+      <li><strong>误删了档案</strong>：无法恢复，建议定期复制 <code>data.json</code> 做备份。</li>
+    </ul>
+  </div>
+</body>
+</html>
