@@ -37,6 +37,19 @@ CONTENT_TYPES = {
 
 EMPTY_SCHEMA = {"profiles": [], "rooms": []}
 
+# 首次运行时预置的教室名单（更新包不再携带 data.json，避免覆盖同事数据）
+DEFAULT_ROOMS = [
+    {"id": "r_seed_%s" % n, "number": n, "category": "class"}
+    for n in [
+        "2801", "2802", "2804", "2805", "2806", "2807", "2808", "2809", "2810",
+        "2811", "2812", "2813", "2814", "2815", "2816", "2817", "2818",
+        "2821", "2822", "2823", "2824",
+    ]
+] + [
+    {"id": "r_seed_v%02d" % i, "number": "V%02d" % i, "category": "vip"}
+    for i in range(1, 41)
+]
+
 
 class JsonStore:
     """data.json 的读写封装，save 用原子写（tmp + os.replace）防损坏。"""
@@ -152,6 +165,33 @@ def validate_fill(body):
     return last_time, last_room, last_teacher, None
 
 
+def validate_import(body):
+    """校验导入数据，返回 (data, error)。合法时 error 为 None。"""
+    if not isinstance(body, dict):
+        return None, "数据格式不正确。"
+    profiles = body.get("profiles")
+    rooms = body.get("rooms")
+    if not isinstance(profiles, list) or not isinstance(rooms, list):
+        return None, "数据格式不正确。"
+    clean_profiles = []
+    for p in profiles:
+        if not isinstance(p, dict) or not isinstance(p.get("name"), str) or not isinstance(p.get("template"), str):
+            return None, "档案数据格式不正确。"
+        p = dict(p)
+        if not isinstance(p.get("id"), str) or not p["id"]:
+            p["id"] = "p_" + uuid.uuid4().hex[:12]
+        clean_profiles.append(p)
+    clean_rooms = []
+    for r in rooms:
+        if not isinstance(r, dict) or not isinstance(r.get("number"), str) or r.get("category") not in ("class", "vip"):
+            return None, "教室数据格式不正确。"
+        r = dict(r)
+        if not isinstance(r.get("id"), str) or not r["id"]:
+            r["id"] = "r_" + uuid.uuid4().hex[:12]
+        clean_rooms.append(r)
+    return {"profiles": clean_profiles, "rooms": clean_rooms}, None
+
+
 class ReminderHandler(http.server.BaseHTTPRequestHandler):
     store = JsonStore(DATA_PATH)
 
@@ -210,6 +250,8 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
             self._send_json(200, {"profiles": self.store.load()["profiles"]})
         elif path == "/api/rooms":
             self._send_json(200, {"rooms": self.store.load()["rooms"]})
+        elif path == "/api/export":
+            self._send_json(200, self.store.load())
         else:
             self._serve_static(path)
 
@@ -237,6 +279,14 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
             data["rooms"].append(room)
             self.store.save(data)
             self._send_json(201, {"room": room})
+        elif path == "/api/import":
+            body = self._read_body()
+            data, err = validate_import(body)
+            if err:
+                self._send_json(400, {"error": err})
+                return
+            self.store.save(data)
+            self._send_json(200, data)
         else:
             self._send_json(404, {"error": "Not Found"})
 
@@ -332,9 +382,9 @@ def main():
     parser.add_argument("--no-browser", action="store_true", help="启动时不自动打开浏览器")
     args = parser.parse_args()
 
-    # 首次运行时建立空数据文件，保证 data.json 始终存在
+    # 首次运行时建立数据文件（预置教室名单），保证 data.json 始终存在
     if not os.path.exists(DATA_PATH):
-        JsonStore(DATA_PATH).save(EMPTY_SCHEMA)
+        JsonStore(DATA_PATH).save({"profiles": [], "rooms": DEFAULT_ROOMS})
 
     server = http.server.ThreadingHTTPServer((args.host, args.port), ReminderHandler)
     url = "http://127.0.0.1:%d" % args.port

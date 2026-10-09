@@ -33,6 +33,9 @@ let roomManageMode = false;
 const els = {
   navProfiles: document.getElementById("nav-profiles"),
   navRooms: document.getElementById("nav-rooms"),
+  btnExport: document.getElementById("btn-export"),
+  btnImport: document.getElementById("btn-import"),
+  importFile: document.getElementById("import-file"),
   profilesView: document.getElementById("profiles-view"),
   roomsView: document.getElementById("rooms-view"),
   profileList: document.getElementById("profile-list"),
@@ -91,6 +94,59 @@ async function api(path, options = {}) {
     return null;
   }
   return res.json();
+}
+
+function todayStamp() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+async function exportData() {
+  let data;
+  try {
+    data = await api("/api/export");
+  } catch (err) {
+    window.alert("导出失败，请重试。");
+    return;
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "上课提醒-备份-" + todayStamp() + ".json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function importData(file) {
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch (err) {
+    window.alert("这个文件不是有效的备份文件。");
+    return;
+  }
+  const profileCount = Array.isArray(data.profiles) ? data.profiles.length : 0;
+  const roomCount = Array.isArray(data.rooms) ? data.rooms.length : 0;
+  if (!window.confirm("导入会覆盖当前全部数据（" + profileCount + " 个档案、" + roomCount + " 个教室）。确定继续吗？")) {
+    return;
+  }
+  let res;
+  try {
+    res = await api("/api/import", { method: "POST", body: data });
+  } catch (err) {
+    window.alert("导入失败，请重试。");
+    return;
+  }
+  if (res && res.error) {
+    window.alert(res.error);
+    return;
+  }
+  await renderProfiles();
+  await renderRooms();
+  window.alert("导入成功。");
 }
 
 function escapeHtml(s) {
@@ -647,11 +703,13 @@ function wheelHtml(id, values) {
     .map((v) => '<div class="wheel-row" data-value="' + v + '">' + v + "</div>")
     .join("");
   return (
-    '<div class="wheel-column" id="' + id + '">' +
+    '<div class="wheel-column">' +
     '<div class="wheel-band" aria-hidden="true"></div>' +
+    '<div class="wheel-scroll" id="' + id + '">' +
     '<div class="wheel-pad"></div>' +
     rows +
     '<div class="wheel-pad"></div>' +
+    "</div>" +
     "</div>"
   );
 }
@@ -1129,6 +1187,13 @@ function wireEvents() {
     roomManageMode = !roomManageMode;
     els.btnManageRooms.classList.toggle("active", roomManageMode);
     renderRooms();
+  });
+  els.btnExport.addEventListener("click", exportData);
+  els.btnImport.addEventListener("click", () => els.importFile.click());
+  els.importFile.addEventListener("change", () => {
+    const file = els.importFile.files && els.importFile.files[0];
+    if (file) importData(file);
+    els.importFile.value = "";
   });
 }
 
