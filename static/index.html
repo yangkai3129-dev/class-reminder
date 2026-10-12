@@ -18,8 +18,17 @@
         <button id="btn-export" class="nav-item" type="button">导出数据</button>
         <button id="btn-import" class="nav-item" type="button">导入数据</button>
       </div>
+      <footer class="site-footer">
+        <div class="footer-links">
+          <a href="https://github.com/yangkai3129-dev/class-reminder" target="_blank" rel="noopener">项目主页</a>
+          <a href="https://github.com/yangkai3129-dev/class-reminder/releases/latest" target="_blank" rel="noopener">下载最新版</a>
+          <a href="https://github.com/yangkai3129-dev/class-reminder/blob/main/LICENSE" target="_blank" rel="noopener">MIT 协议</a>
+        </div>
+        <p class="footer-copy">© 2026 上课提醒 · 开源项目</p>
+      </footer>
     </aside>
     <input id="import-file" type="file" accept=".json,application/json" hidden>
+    <input id="schedule-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
     <main id="content">
       <section id="profiles-view" class="view">
         <header class="view-header">
@@ -32,9 +41,14 @@
           </div>
           <div class="header-controls">
             <input id="profile-search" class="search-input" type="text" placeholder="搜索学生姓名">
-            <button id="btn-new-profile" class="btn btn-primary" type="button">新建档案</button>
+            <button id="btn-import-schedule" class="btn btn-primary" type="button">导入课表</button>
+            <button id="btn-new-profile" class="btn btn-secondary" type="button">新建档案</button>
           </div>
         </header>
+        <div id="schedule-status" class="schedule-status" hidden>
+          <span id="schedule-status-text"></span>
+          <button id="btn-clear-schedule" class="schedule-clear" type="button">清除</button>
+        </div>
         <div id="profile-list" class="list"></div>
         <div id="profile-grid" class="profile-grid" hidden></div>
         <div id="profiles-empty" class="empty" hidden>
@@ -71,6 +85,7 @@
           </div>
         </header>
         <h2 id="fill-title" class="view-title"></h2>
+        <p id="fill-schedule-note" class="hint" hidden></p>
         <p id="fill-error" class="error" hidden></p>
         <div id="fill-fields" class="fill-fields"></div>
         <p id="fill-hint" class="hint">点「确认」保存这三个值，下次打开该学生会自动带出。</p>
@@ -78,15 +93,6 @@
           <button id="btn-fill-confirm" class="btn btn-primary" type="button">确认</button>
         </div>
       </section>
-
-      <footer class="site-footer">
-        <div class="footer-links">
-          <a href="https://github.com/yangkai3129-dev/class-reminder" target="_blank" rel="noopener">项目主页</a>
-          <a href="https://github.com/yangkai3129-dev/class-reminder/releases/latest" target="_blank" rel="noopener">下载最新版</a>
-          <a href="https://github.com/yangkai3129-dev/class-reminder/blob/main/LICENSE" target="_blank" rel="noopener">MIT 协议</a>
-        </div>
-        <p class="footer-copy">© 2026 上课提醒 · 开源项目</p>
-      </footer>
     </main>
   </div>
 
@@ -161,6 +167,39 @@
       <div class="modal-actions">
         <button id="btn-copy-back" class="btn btn-secondary" type="button">修改</button>
         <button id="btn-copy-confirm" class="btn btn-primary" type="button">确认复制</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导入课表弹窗（三段：选日期 → 导入中 → 结果） -->
+  <div id="schedule-modal" class="modal-backdrop" hidden>
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
+      <h2 id="schedule-modal-title" class="modal-title">导入课表</h2>
+
+      <div id="schedule-stage-pick">
+        <div class="field">
+          <label class="label" for="schedule-date">课表日期</label>
+          <input id="schedule-date" class="input" type="date">
+        </div>
+        <p id="schedule-modal-error" class="error" hidden></p>
+        <div class="modal-actions">
+          <button id="btn-schedule-cancel" class="btn btn-secondary" type="button">取消</button>
+          <button id="btn-schedule-confirm" class="btn btn-primary" type="button">确认导入</button>
+        </div>
+        <p class="hint">
+          <button id="btn-schedule-manual" class="link-action" type="button">手动选择文件</button>
+        </p>
+      </div>
+
+      <div id="schedule-stage-loading" hidden>
+        <p class="import-status"><span class="spinner"></span> 正在导入课表，请稍候…</p>
+      </div>
+
+      <div id="schedule-stage-result" hidden>
+        <p id="schedule-result-text" class="schedule-result"></p>
+        <div class="modal-actions">
+          <button id="btn-schedule-result" class="btn btn-primary" type="button">完成</button>
+        </div>
       </div>
     </div>
   </div>

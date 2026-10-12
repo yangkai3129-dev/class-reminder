@@ -11,6 +11,8 @@ const state = {
   rooms: [],
   activeView: "profiles",
   activeRoomCategory: "class",
+  schedule: {},
+  scheduleDate: "",
 };
 
 let editorMode = "create";
@@ -29,13 +31,16 @@ let profileView = "list";
 let searchQuery = "";
 let fillRoomCategory = "class";
 let roomManageMode = false;
+let scheduleResultOk = true;
 
 const els = {
   navProfiles: document.getElementById("nav-profiles"),
   navRooms: document.getElementById("nav-rooms"),
   btnExport: document.getElementById("btn-export"),
   btnImport: document.getElementById("btn-import"),
+  btnImportSchedule: document.getElementById("btn-import-schedule"),
   importFile: document.getElementById("import-file"),
+  scheduleFile: document.getElementById("schedule-file"),
   profilesView: document.getElementById("profiles-view"),
   roomsView: document.getElementById("rooms-view"),
   profileList: document.getElementById("profile-list"),
@@ -71,6 +76,7 @@ const els = {
   btnConfirmDelete: document.getElementById("btn-confirm-delete"),
   fillView: document.getElementById("fill-view"),
   fillTitle: document.getElementById("fill-title"),
+  fillScheduleNote: document.getElementById("fill-schedule-note"),
   fillFields: document.getElementById("fill-fields"),
   fillError: document.getElementById("fill-error"),
   btnFillBack: document.getElementById("btn-fill-back"),
@@ -82,6 +88,20 @@ const els = {
   copyStatus: document.getElementById("copy-status"),
   btnCopyBack: document.getElementById("btn-copy-back"),
   btnCopyConfirm: document.getElementById("btn-copy-confirm"),
+  scheduleModal: document.getElementById("schedule-modal"),
+  scheduleDate: document.getElementById("schedule-date"),
+  scheduleModalError: document.getElementById("schedule-modal-error"),
+  scheduleStagePick: document.getElementById("schedule-stage-pick"),
+  scheduleStageLoading: document.getElementById("schedule-stage-loading"),
+  scheduleStageResult: document.getElementById("schedule-stage-result"),
+  scheduleResultText: document.getElementById("schedule-result-text"),
+  btnScheduleCancel: document.getElementById("btn-schedule-cancel"),
+  btnScheduleConfirm: document.getElementById("btn-schedule-confirm"),
+  btnScheduleManual: document.getElementById("btn-schedule-manual"),
+  btnScheduleResult: document.getElementById("btn-schedule-result"),
+  scheduleStatus: document.getElementById("schedule-status"),
+  scheduleStatusText: document.getElementById("schedule-status-text"),
+  btnClearSchedule: document.getElementById("btn-clear-schedule"),
 };
 
 async function api(path, options = {}) {
@@ -147,6 +167,151 @@ async function importData(file) {
   await renderProfiles();
   await renderRooms();
   window.alert("导入成功。");
+}
+
+function applyScheduleData(res) {
+  state.schedule = (res && res.schedule) || {};
+  state.scheduleDate = (res && res.date) || "";
+  try {
+    localStorage.setItem("schedule", JSON.stringify({ date: state.scheduleDate, schedule: state.schedule }));
+  } catch (err) {}
+  updateScheduleStatus();
+  renderProfiles();
+}
+
+function updateScheduleStatus() {
+  if (state.scheduleDate) {
+    els.scheduleStatusText.textContent = "已导入 " + state.scheduleDate + " 课表";
+    els.scheduleStatus.hidden = false;
+  } else {
+    els.scheduleStatusText.textContent = "";
+    els.scheduleStatus.hidden = true;
+  }
+}
+
+function clearSchedule() {
+  state.schedule = {};
+  state.scheduleDate = "";
+  try {
+    localStorage.removeItem("schedule");
+  } catch (err) {}
+  updateScheduleStatus();
+  renderProfiles();
+}
+
+async function importScheduleFromFile(file) {
+  let res;
+  try {
+    res = await fetch("/api/import-schedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream" },
+      body: await file.arrayBuffer(),
+    });
+    res = await res.json();
+  } catch (err) {
+    window.alert("导入课表失败，请确认选择的是金山文档导出的 xlsx 文件。");
+    return;
+  }
+  if (res && res.error) {
+    window.alert(res.error);
+    return;
+  }
+  applyScheduleData(res);
+  window.alert("导入成功：共 " + Object.keys(state.schedule).length + " 个学生、" + ((res && res.count) || 0) + " 节课。");
+}
+
+function tomorrowDateStr() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function openScheduleModal() {
+  els.scheduleDate.value = tomorrowDateStr();
+  els.scheduleModalError.hidden = true;
+  els.scheduleModalError.textContent = "";
+  showScheduleStage("pick");
+  els.scheduleModal.hidden = false;
+  els.scheduleDate.focus();
+}
+
+function closeScheduleModal() {
+  els.scheduleModal.hidden = true;
+}
+
+function showScheduleStage(stage) {
+  els.scheduleStagePick.hidden = stage !== "pick";
+  els.scheduleStageLoading.hidden = stage !== "loading";
+  els.scheduleStageResult.hidden = stage !== "result";
+}
+
+async function handleScheduleConfirm() {
+  const dateVal = els.scheduleDate.value;
+  if (!dateVal) {
+    els.scheduleModalError.textContent = "请选择课表日期。";
+    els.scheduleModalError.hidden = false;
+    return;
+  }
+  els.scheduleModalError.hidden = true;
+  showScheduleStage("loading");
+
+  let res;
+  try {
+    res = await fetch("/api/fetch-schedule?date=" + encodeURIComponent(dateVal));
+    res = await res.json();
+  } catch (err) {
+    res = { error: "网络请求失败" };
+  }
+
+  if (res && !res.error) {
+    scheduleResultOk = true;
+    applyScheduleData(res);
+    els.scheduleResultText.textContent = "✓ 已导入「" + state.scheduleDate + "」课表：共 " + Object.keys(state.schedule).length + " 个学生、" + (res.count || 0) + " 节课";
+    els.btnScheduleResult.textContent = "完成";
+  } else {
+    scheduleResultOk = false;
+    els.scheduleResultText.textContent = "导入失败：" + ((res && res.error) ? res.error : "网络请求失败");
+    els.btnScheduleResult.textContent = "返回";
+  }
+  showScheduleStage("result");
+}
+
+function handleScheduleResult() {
+  if (scheduleResultOk) {
+    closeScheduleModal();
+  } else {
+    showScheduleStage("pick");
+  }
+}
+
+function handleImportSchedule() {
+  openScheduleModal();
+}
+
+function lookupSchedule(name) {
+  return state.schedule ? state.schedule[name] || [] : [];
+}
+
+function renderScheduleNote(profile, classes) {
+  const note = els.fillScheduleNote;
+  if (!classes || classes.length === 0) {
+    if (state.scheduleDate) {
+      note.hidden = false;
+      note.textContent = "课表中未找到「" + profile.name + "」，请手动填写。";
+    } else {
+      note.hidden = true;
+      note.textContent = "";
+    }
+    return;
+  }
+  const first = classes[0];
+  let text = "已按「" + state.scheduleDate + "」课表自动填入：" + first.time + " / " + first.room + " / " + first.teacher;
+  if (classes.length > 1) {
+    const rest = classes.slice(1).map((c) => c.time + " " + c.room + " " + c.teacher).join("；");
+    text += "。另有 " + (classes.length - 1) + " 节：" + rest;
+  }
+  note.hidden = false;
+  note.textContent = text;
 }
 
 function escapeHtml(s) {
@@ -269,6 +434,18 @@ function renderProfileCard(profile) {
   return card;
 }
 
+function isMatched(profile) {
+  const classes = state.schedule && state.schedule[profile.name];
+  return Array.isArray(classes) && classes.length > 0;
+}
+
+function renderGroupHeader(text, count) {
+  const h = document.createElement("div");
+  h.className = "profile-group-header";
+  h.textContent = text + " · " + count;
+  return h;
+}
+
 async function renderProfiles() {
   let data;
   try {
@@ -303,12 +480,21 @@ async function renderProfiles() {
     }
   } else {
     els.profilesEmpty.hidden = true;
-    for (const profile of filtered) {
-      if (isCard) {
-        els.profileGrid.appendChild(renderProfileCard(profile));
-      } else {
-        els.profileList.appendChild(renderProfileRow(profile));
+    const container = isCard ? els.profileGrid : els.profileList;
+    const hasSchedule = state.schedule && Object.keys(state.schedule).length > 0;
+    if (hasSchedule) {
+      const matched = filtered.filter((p) => isMatched(p));
+      const unmatched = filtered.filter((p) => !isMatched(p));
+      if (matched.length) {
+        container.appendChild(renderGroupHeader("已匹配课表", matched.length));
+        matched.forEach((p) => container.appendChild(isCard ? renderProfileCard(p) : renderProfileRow(p)));
       }
+      if (unmatched.length) {
+        container.appendChild(renderGroupHeader("课表未匹配", unmatched.length));
+        unmatched.forEach((p) => container.appendChild(isCard ? renderProfileCard(p) : renderProfileRow(p)));
+      }
+    } else {
+      filtered.forEach((p) => container.appendChild(isCard ? renderProfileCard(p) : renderProfileRow(p)));
     }
   }
 }
@@ -867,7 +1053,20 @@ async function openFill(profile) {
     roomsLoaded = true;
   }
   showView("fill");
-  renderFill(profile);
+  const classes = lookupSchedule(profile.name);
+  let override;
+  if (classes && classes.length > 0) {
+    const first = classes[0];
+    const parts = (first.time || "").split("-");
+    override = {
+      start: parts[0] || "",
+      end: parts[1] || parts[0] || "",
+      room: first.room || "",
+      teacher: first.teacher || "",
+    };
+  }
+  renderFill(profile, override);
+  renderScheduleNote(profile, classes);
 }
 
 function getWheelValue(id) {
@@ -1195,6 +1394,20 @@ function wireEvents() {
     if (file) importData(file);
     els.importFile.value = "";
   });
+  els.btnImportSchedule.addEventListener("click", handleImportSchedule);
+  els.scheduleFile.addEventListener("change", () => {
+    const file = els.scheduleFile.files && els.scheduleFile.files[0];
+    if (file) importScheduleFromFile(file);
+    els.scheduleFile.value = "";
+  });
+  els.btnScheduleCancel.addEventListener("click", closeScheduleModal);
+  els.btnScheduleConfirm.addEventListener("click", handleScheduleConfirm);
+  els.btnScheduleResult.addEventListener("click", handleScheduleResult);
+  els.btnScheduleManual.addEventListener("click", () => {
+    closeScheduleModal();
+    els.scheduleFile.click();
+  });
+  els.btnClearSchedule.addEventListener("click", clearSchedule);
 }
 
 async function init() {
@@ -1220,6 +1433,17 @@ async function init() {
       t.classList.toggle("active", t.dataset.view === profileView);
     });
   }
+  try {
+    const savedSchedule = localStorage.getItem("schedule");
+    if (savedSchedule) {
+      const parsed = JSON.parse(savedSchedule);
+      if (parsed && typeof parsed === "object") {
+        state.schedule = parsed.schedule || {};
+        state.scheduleDate = parsed.date || "";
+      }
+    }
+  } catch (err) {}
+  updateScheduleStatus();
   updateModeToggle();
   showView("profiles");
   await renderProfiles();

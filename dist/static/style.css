@@ -102,7 +102,6 @@ body {
 #content {
   margin-left: 240px;
   min-height: 100vh;
-  padding-bottom: 96px;
   background: var(--bg-primary);
 }
 
@@ -166,6 +165,14 @@ body {
 .list {
   display: flex;
   flex-direction: column;
+}
+
+.profile-group-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 24px 4px 8px;
+  grid-column: 1 / -1;
 }
 
 .profile-row {
@@ -906,21 +913,17 @@ body {
   border-color: var(--accent);
 }
 
-/* ---- Site footer (project links) ---- */
+/* ---- Site footer (project links, in sidebar) ---- */
 .site-footer {
-  position: fixed;
-  bottom: 0;
-  left: 240px;
-  right: 0;
+  margin-top: 8px;
+  padding: 12px 16px 0;
   border-top: 1px solid var(--divider);
-  padding: 16px 32px;
-  background: var(--bg-primary);
 }
 
 .footer-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 12px;
   margin-bottom: 8px;
 }
 
@@ -941,4 +944,54 @@ body {
   line-height: 1.4;
   color: var(--text-secondary);
   margin: 0;
+}
+
+.schedule-result {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  margin: 0 0 16px;
+}
+
+.schedule-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.schedule-clear {
+  font-size: 12px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.import-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--divider);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
