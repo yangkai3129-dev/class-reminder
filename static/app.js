@@ -90,6 +90,9 @@ const els = {
   btnCopyConfirm: document.getElementById("btn-copy-confirm"),
   scheduleModal: document.getElementById("schedule-modal"),
   scheduleDate: document.getElementById("schedule-date"),
+  scheduleDateBox: document.getElementById("schedule-date-box"),
+  scheduleDateDisplay: document.getElementById("schedule-date-display"),
+  scheduleDateLabel: document.getElementById("schedule-date-label"),
   scheduleModalError: document.getElementById("schedule-modal-error"),
   scheduleStagePick: document.getElementById("schedule-stage-pick"),
   scheduleStageLoading: document.getElementById("schedule-stage-loading"),
@@ -199,25 +202,32 @@ function clearSchedule() {
   renderProfiles();
 }
 
-async function importScheduleFromFile(file) {
+async function importScheduleFromFile(file, dateStr) {
+  showScheduleStage("loading");
   let res;
   try {
-    res = await fetch("/api/import-schedule", {
+    const url = dateStr ? "/api/import-schedule?date=" + encodeURIComponent(dateStr) : "/api/import-schedule";
+    res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/octet-stream" },
       body: await file.arrayBuffer(),
     });
     res = await res.json();
   } catch (err) {
-    window.alert("导入课表失败，请确认选择的是金山文档导出的 xlsx 文件。");
-    return;
+    res = { error: "网络请求失败" };
   }
-  if (res && res.error) {
-    window.alert(res.error);
-    return;
+
+  if (res && !res.error) {
+    scheduleResultOk = true;
+    applyScheduleData(res);
+    els.scheduleResultText.textContent = "✓ 已导入「" + state.scheduleDate + "」课表：共 " + Object.keys(state.schedule).length + " 个学生、" + (res.count || 0) + " 节课";
+    els.btnScheduleResult.textContent = "完成";
+  } else {
+    scheduleResultOk = false;
+    els.scheduleResultText.textContent = "导入失败：" + ((res && res.error) ? res.error : "网络请求失败");
+    els.btnScheduleResult.textContent = "返回";
   }
-  applyScheduleData(res);
-  window.alert("导入成功：共 " + Object.keys(state.schedule).length + " 个学生、" + ((res && res.count) || 0) + " 节课。");
+  showScheduleStage("result");
 }
 
 function tomorrowDateStr() {
@@ -226,8 +236,30 @@ function tomorrowDateStr() {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
 
+function todayDateStr() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function formatDateDisplay(dateStr) {
+  return dateStr ? dateStr.replace(/-/g, "/") : "";
+}
+
+function updateScheduleDateDisplay() {
+  const v = els.scheduleDate.value;
+  els.scheduleDateDisplay.textContent = formatDateDisplay(v);
+  if (v === todayDateStr()) {
+    els.scheduleDateLabel.textContent = "（今日）";
+  } else if (v === tomorrowDateStr()) {
+    els.scheduleDateLabel.textContent = "（明日）";
+  } else {
+    els.scheduleDateLabel.textContent = "";
+  }
+}
+
 function openScheduleModal() {
   els.scheduleDate.value = tomorrowDateStr();
+  updateScheduleDateDisplay();
   els.scheduleModalError.hidden = true;
   els.scheduleModalError.textContent = "";
   showScheduleStage("pick");
@@ -1397,17 +1429,24 @@ function wireEvents() {
   els.btnImportSchedule.addEventListener("click", handleImportSchedule);
   els.scheduleFile.addEventListener("change", () => {
     const file = els.scheduleFile.files && els.scheduleFile.files[0];
-    if (file) importScheduleFromFile(file);
+    if (file) importScheduleFromFile(file, els.scheduleDate.value);
     els.scheduleFile.value = "";
   });
   els.btnScheduleCancel.addEventListener("click", closeScheduleModal);
   els.btnScheduleConfirm.addEventListener("click", handleScheduleConfirm);
   els.btnScheduleResult.addEventListener("click", handleScheduleResult);
   els.btnScheduleManual.addEventListener("click", () => {
-    closeScheduleModal();
     els.scheduleFile.click();
   });
   els.btnClearSchedule.addEventListener("click", clearSchedule);
+  els.scheduleDate.addEventListener("change", updateScheduleDateDisplay);
+  els.scheduleDateBox.addEventListener("click", () => {
+    try {
+      els.scheduleDate.showPicker();
+    } catch (err) {
+      els.scheduleDate.focus();
+    }
+  });
 }
 
 async function init() {

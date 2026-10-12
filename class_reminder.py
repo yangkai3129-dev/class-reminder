@@ -372,12 +372,22 @@ def _extract_schedule_date(grid, sheet_name):
     return (sheet_name or "").strip() or "未知日期"
 
 
-def parse_schedule_xlsx(raw, valid_rooms):
-    """把金山文档导出的 xlsx 字节解析成 {date, schedule, count}。"""
-    grid, max_row, max_col, sheet_name = _read_xlsx_sheet(raw, 0)
+def parse_schedule_xlsx(raw, valid_rooms, month=None, day=None):
+    """把 xlsx 字节解析成 {date, schedule, count}。
+    给定 month/day 则匹配该日期的工作表，否则读第一个表。"""
+    if month is not None and day is not None:
+        sheet_names = _read_xlsx_sheet_names(raw)
+        idx = _match_sheet_index(sheet_names, month, day)
+        if idx is None:
+            raise RuntimeError("课表文件里没有 %d月%d日 的工作表" % (month, day))
+        grid, max_row, max_col, _ = _read_xlsx_sheet(raw, idx)
+        date_label = "%d月%d日" % (month, day)
+    else:
+        grid, max_row, max_col, sheet_name = _read_xlsx_sheet(raw, 0)
+        date_label = _extract_schedule_date(grid, sheet_name)
     schedule = _parse_schedule_grid(grid, max_row, max_col, valid_rooms)
     return {
-        "date": _extract_schedule_date(grid, sheet_name),
+        "date": date_label,
         "schedule": schedule,
         "count": sum(len(v) for v in schedule.values()),
     }
@@ -825,9 +835,13 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
                 valid_rooms = {r.get("number") for r in rooms if isinstance(r, dict) and r.get("number")}
                 if not valid_rooms:
                     valid_rooms = {r["number"] for r in DEFAULT_ROOMS}
-                result = parse_schedule_xlsx(raw, valid_rooms)
-            except Exception:
-                self._send_json(400, {"error": "无法解析这个课表文件，请确认它是金山文档导出的 xlsx。"})
+                query = urllib.parse.parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
+                date_str = (query.get("date") or [""])[0]
+                m = re.match(r"^(\d{4})-(\d{1,2})-(\d{1,2})$", date_str)
+                month, day = (int(m.group(2)), int(m.group(3))) if m else (None, None)
+                result = parse_schedule_xlsx(raw, valid_rooms, month, day)
+            except Exception as e:
+                self._send_json(400, {"error": "无法解析这个课表文件：" + str(e)})
                 return
             self._send_json(200, result)
         else:

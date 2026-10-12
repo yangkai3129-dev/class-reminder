@@ -179,8 +179,14 @@
       <div id="schedule-stage-pick">
         <div class="field">
           <label class="label" for="schedule-date">课表日期</label>
-          <input id="schedule-date" class="input" type="date">
+          <div class="schedule-date-wrap">
+            <button id="schedule-date-box" class="schedule-date-box" type="button">
+              <span id="schedule-date-display"></span><span id="schedule-date-label" class="schedule-date-label"></span>
+            </button>
+            <input id="schedule-date" class="schedule-date-input" type="date">
+          </div>
         </div>
+        <p class="hint">如需导入明日课表，请等待课表发布后再导入。</p>
         <p id="schedule-modal-error" class="error" hidden></p>
         <div class="modal-actions">
           <button id="btn-schedule-cancel" class="btn btn-secondary" type="button">取消</button>
@@ -188,6 +194,7 @@
         </div>
         <p class="hint">
           <button id="btn-schedule-manual" class="link-action" type="button">手动选择文件</button>
+          <span>导入课表日期同上</span>
         </p>
       </div>
 
