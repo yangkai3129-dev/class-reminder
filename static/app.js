@@ -37,6 +37,7 @@ let roomManageMode = false;
 let scheduleResultOk = true;
 let fillPage = 0;
 let fillDraft = null;
+let lastEditorTarget = null;
 
 const els = {
   navProfiles: document.getElementById("nav-profiles"),
@@ -648,9 +649,8 @@ function handleCopyConfirmClick() {
 }
 
 function insertToken(token) {
-  const ta = document.activeElement;
-  const targets = [els.editorHeader, els.editorFooter, els.editorSlot0, els.editorSlot1, els.editorSlot2];
-  if (targets.indexOf(ta) !== -1) {
+  const ta = lastEditorTarget;
+  if (ta) {
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
     ta.value = ta.value.slice(0, start) + token + ta.value.slice(end);
@@ -660,9 +660,11 @@ function insertToken(token) {
 }
 
 function switchEditorSlot(n) {
-  [els.editorSlot0, els.editorSlot1, els.editorSlot2].forEach((ta, i) => {
+  const slots = [els.editorSlot0, els.editorSlot1, els.editorSlot2];
+  slots.forEach((ta, i) => {
     ta.hidden = i !== n;
   });
+  lastEditorTarget = slots[n];
   els.editorSlotTabs.querySelectorAll(".seg-tab").forEach((tab) => {
     tab.classList.toggle("active", parseInt(tab.dataset.slot, 10) === n);
   });
@@ -1455,6 +1457,9 @@ function wireEvents() {
   });
   document.querySelectorAll(".chip-btn").forEach((btn) => {
     btn.addEventListener("click", () => insertToken(btn.dataset.token));
+  });
+  [els.editorHeader, els.editorFooter, els.editorSlot0, els.editorSlot1, els.editorSlot2].forEach((ta) => {
+    ta.addEventListener("focus", () => { lastEditorTarget = ta; });
   });
 
   els.profileSearch.addEventListener("input", () => {

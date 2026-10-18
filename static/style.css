@@ -331,6 +331,18 @@ body {
   overflow-y: auto;
 }
 
+#profile-editor .modal {
+  max-width: 720px;
+}
+
+#profile-editor textarea.input {
+  height: auto;
+  min-height: 56px;
+  padding: 8px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
 .modal-narrow {
   max-width: 480px;
 }
