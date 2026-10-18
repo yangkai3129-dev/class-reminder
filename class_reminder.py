@@ -692,7 +692,10 @@ def _kdocs_download_raw():
     """用浏览器登录态下载金山文档整本 xlsx，返回原始字节。"""
     cookies = _read_browser_kdocs_cookies()
     if not cookies:
-        raise RuntimeError("浏览器里没有金山文档的登录信息，请先用 Chrome 或 Edge 登录金山文档")
+        raise RuntimeError(
+            "读不到金山登录信息：新版 Chrome/Edge 用 v20 加密，自动抓取暂不支持，"
+            "请点「手动选择文件」导入（从金山导出 xlsx 再选）；或先确认已用 Chrome/Edge 登录金山文档"
+        )
     cookie_header = "; ".join("%s=%s" % (k, v) for k, v in cookies.items())
     ctx = _ssl_context()
     req = urllib.request.Request(KDOCS_API_DL, headers={
