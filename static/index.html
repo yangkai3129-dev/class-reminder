@@ -105,15 +105,29 @@
         <input id="profile-name" class="input" type="text" placeholder="例如：张三 · 海生2册">
       </div>
       <div class="field">
-        <label class="label">提醒模板</label>
+        <label class="label">固定头（标题 + 教室安排 + 时间安排）</label>
+        <textarea id="editor-header" class="input" rows="3"></textarea>
+      </div>
+      <div class="field">
+        <label class="label">课节模板</label>
         <div class="composer-toolbar">
           <button class="chip-btn" data-token="{时间}" type="button">{时间}</button>
           <button class="chip-btn" data-token="{教室号}" type="button">{教室号}</button>
           <button class="chip-btn" data-token="{教师}" type="button">{教师}</button>
         </div>
-        <div id="template-composer" class="composer" contenteditable="true"></div>
-        <p class="hint">点上方按钮插入占位符，每天会自动替换成当天的值。</p>
-        <div id="template-preview" class="preview"></div>
+        <div id="editor-slot-tabs" class="segmented">
+          <button class="seg-tab active" data-slot="0" type="button">第1节</button>
+          <button class="seg-tab" data-slot="1" type="button">第2节</button>
+          <button class="seg-tab" data-slot="2" type="button">第3节</button>
+        </div>
+        <textarea id="editor-slot-0" class="input" rows="2"></textarea>
+        <textarea id="editor-slot-1" class="input" rows="2" hidden></textarea>
+        <textarea id="editor-slot-2" class="input" rows="2" hidden></textarea>
+        <p class="hint">每节一行模板，如「{时间} @{教师}」；没课的节留空即可。</p>
+      </div>
+      <div class="field">
+        <label class="label">固定尾</label>
+        <textarea id="editor-footer" class="input" rows="2"></textarea>
       </div>
       <div id="editor-error" class="error" hidden></div>
       <div class="modal-actions">
@@ -162,10 +176,10 @@
   <div id="copy-modal" class="modal-backdrop" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="copy-modal-title">
       <h2 id="copy-modal-title" class="modal-title"></h2>
-      <pre id="copy-preview" class="copy-preview"></pre>
+      <textarea id="copy-preview" class="copy-preview"></textarea>
       <p id="copy-status" class="copy-status" hidden></p>
       <div class="modal-actions">
-        <button id="btn-copy-back" class="btn btn-secondary" type="button">修改</button>
+        <button id="btn-copy-back" class="btn btn-secondary" type="button">取消</button>
         <button id="btn-copy-confirm" class="btn btn-primary" type="button">确认复制</button>
       </div>
     </div>

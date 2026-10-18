@@ -1,5 +1,8 @@
 const PLACEHOLDERS = ["{时间}", "{教室号}", "{教师}"];
 
+const DEFAULT_HEADER = "明日上课提醒：✨✨✨\n🚪教室安排：{教室号}\n🔔 时间安排：";
+const DEFAULT_FOOTER = "有任何问题及时沟通哈";
+
 const SAMPLE_VALUES = {
   "{时间}": "9:00-10:30",
   "{教室号}": "2802",
@@ -32,6 +35,8 @@ let searchQuery = "";
 let fillRoomCategory = "class";
 let roomManageMode = false;
 let scheduleResultOk = true;
+let fillPage = 0;
+let fillDraft = null;
 
 const els = {
   navProfiles: document.getElementById("nav-profiles"),
@@ -52,8 +57,12 @@ const els = {
   profileEditor: document.getElementById("profile-editor"),
   profileEditorTitle: document.getElementById("profile-editor-title"),
   profileName: document.getElementById("profile-name"),
-  templateComposer: document.getElementById("template-composer"),
-  templatePreview: document.getElementById("template-preview"),
+  editorHeader: document.getElementById("editor-header"),
+  editorFooter: document.getElementById("editor-footer"),
+  editorSlotTabs: document.getElementById("editor-slot-tabs"),
+  editorSlot0: document.getElementById("editor-slot-0"),
+  editorSlot1: document.getElementById("editor-slot-1"),
+  editorSlot2: document.getElementById("editor-slot-2"),
   editorError: document.getElementById("editor-error"),
   btnEditorCancel: document.getElementById("btn-editor-cancel"),
   btnEditorConfirm: document.getElementById("btn-editor-confirm"),
@@ -404,7 +413,7 @@ function renderProfileRow(profile) {
 
   const preview = document.createElement("div");
   preview.className = "profile-template-preview";
-  preview.innerHTML = templateToHtml(profile.template || "");
+  preview.innerHTML = templateToHtml(profilePreview(profile));
 
   main.appendChild(name);
   main.appendChild(preview);
@@ -540,19 +549,27 @@ function renderPreview() {
   els.templatePreview.textContent = preview;
 }
 
-function renderCopyText(template, last_time, last_room, last_teacher) {
-  const values = { "{时间}": last_time, "{教室号}": last_room, "{教师}": last_teacher };
-  let out = template;
-  for (const token of PLACEHOLDERS) {
-    out = out.split(token).join(values[token] || "");
+function renderCopyText(profile) {
+  const room = profile.last_room || "";
+  let text = (profile.header || "").split("{教室号}").join(room);
+  for (const slot of (profile.slots || [])) {
+    const tpl = (slot && slot.template) || "";
+    if (!tpl.trim()) continue;
+    let line = tpl.split("{时间}").join(slot.last_time || "")
+      .split("{教师}").join(slot.last_teacher || "")
+      .split("{教室号}").join(room);
+    text += "\n" + line;
   }
-  return out;
+  if (profile.footer) {
+    text += "\n" + profile.footer;
+  }
+  return text;
 }
 
 function openCopyModal(profile, rendered) {
   copyDone = false;
   els.copyModalTitle.textContent = profile.name || "";
-  els.copyPreview.textContent = rendered;
+  els.copyPreview.value = rendered;
   els.copyStatus.hidden = true;
   els.copyStatus.textContent = "";
   els.btnCopyConfirm.textContent = "确认复制";
@@ -570,11 +587,8 @@ function showCopyStatus(message, isError) {
 }
 
 function selectRenderedText() {
-  const sel = window.getSelection();
-  if (sel.rangeCount > 0) sel.removeAllRanges();
-  const range = document.createRange();
-  range.selectNodeContents(els.copyPreview);
-  sel.addRange(range);
+  els.copyPreview.focus();
+  els.copyPreview.select();
 }
 
 function legacyCopy(text) {
@@ -598,16 +612,17 @@ function legacyCopy(text) {
 }
 
 async function handleCopyConfirm() {
+  const text = els.copyPreview.value;
   let ok = false;
   if (navigator.clipboard && window.isSecureContext) {
     try {
-      await navigator.clipboard.writeText(renderedText);
+      await navigator.clipboard.writeText(text);
       ok = true;
     } catch (err) {
       ok = false;
     }
   }
-  if (!ok) ok = legacyCopy(renderedText);
+  if (!ok) ok = legacyCopy(text);
   if (ok) {
     showCopyStatus("已复制到剪贴板", false);
     copyDone = true;
@@ -633,27 +648,24 @@ function handleCopyConfirmClick() {
 }
 
 function insertToken(token) {
-  const composer = els.templateComposer;
-  composer.focus();
-  const chip = document.createElement("span");
-  chip.className = "chip";
-  chip.setAttribute("data-token", token);
-  chip.setAttribute("contenteditable", "false");
-  chip.textContent = token;
-
-  const selection = window.getSelection();
-  if (selection && selection.rangeCount) {
-    const range = selection.getRangeAt(0);
-    range.deleteContents();
-    range.insertNode(chip);
-    range.setStartAfter(chip);
-    range.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(range);
-  } else {
-    composer.appendChild(chip);
+  const ta = document.activeElement;
+  const targets = [els.editorHeader, els.editorFooter, els.editorSlot0, els.editorSlot1, els.editorSlot2];
+  if (targets.indexOf(ta) !== -1) {
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    ta.value = ta.value.slice(0, start) + token + ta.value.slice(end);
+    ta.selectionStart = ta.selectionEnd = start + token.length;
+    ta.focus();
   }
-  renderPreview();
+}
+
+function switchEditorSlot(n) {
+  [els.editorSlot0, els.editorSlot1, els.editorSlot2].forEach((ta, i) => {
+    ta.hidden = i !== n;
+  });
+  els.editorSlotTabs.querySelectorAll(".seg-tab").forEach((tab) => {
+    tab.classList.toggle("active", parseInt(tab.dataset.slot, 10) === n);
+  });
 }
 
 function openProfileEditor(mode, profile) {
@@ -666,16 +678,25 @@ function openProfileEditor(mode, profile) {
     els.btnEditorConfirm.textContent = "保存修改";
     els.btnEditorCancel.textContent = "放弃修改";
     els.profileName.value = profile.name || "";
-    els.templateComposer.innerHTML = templateToHtml(profile.template || "");
+    els.editorHeader.value = profile.header || "";
+    els.editorFooter.value = profile.footer || "";
+    const slots = profile.slots || [];
+    els.editorSlot0.value = (slots[0] && slots[0].template) || "";
+    els.editorSlot1.value = (slots[1] && slots[1].template) || "";
+    els.editorSlot2.value = (slots[2] && slots[2].template) || "";
   } else {
     els.profileEditorTitle.textContent = "新建档案";
     els.btnEditorConfirm.textContent = "创建档案";
     els.btnEditorCancel.textContent = "放弃创建";
     els.profileName.value = "";
-    els.templateComposer.innerHTML = "";
+    els.editorHeader.value = DEFAULT_HEADER;
+    els.editorFooter.value = DEFAULT_FOOTER;
+    els.editorSlot0.value = "{时间} @{教师}";
+    els.editorSlot1.value = "{时间} @{教师}";
+    els.editorSlot2.value = "";
   }
+  switchEditorSlot(0);
   els.profileEditor.hidden = false;
-  renderPreview();
   els.profileName.focus();
 }
 
@@ -685,22 +706,27 @@ function closeEditor() {
 
 async function handleEditorConfirm() {
   const name = els.profileName.value.trim();
-  const template = serializeComposer(els.templateComposer);
+  const header = els.editorHeader.value;
+  const footer = els.editorFooter.value;
+  const slots = [
+    { template: els.editorSlot0.value.trim() },
+    { template: els.editorSlot1.value.trim() },
+    { template: els.editorSlot2.value.trim() },
+  ];
   let res;
   try {
+    const body = { name, header, footer, slots };
     if (editorMode === "edit" && editingProfileId) {
-      res = await api("/api/profiles/" + editingProfileId, { method: "PUT", body: { name, template } });
+      res = await api("/api/profiles/" + editingProfileId, { method: "PUT", body });
     } else {
-      res = await api("/api/profiles", { method: "POST", body: { name, template } });
+      res = await api("/api/profiles", { method: "POST", body });
     }
   } catch (err) {
     showEditorError("保存失败：数据没有写进文件，请确认数据文件可写后重试。");
     return;
   }
   if (res && res.error) {
-    if (res.error.indexOf("占位符") !== -1) {
-      showEditorError("模板里至少要有一个占位符（{时间}、{教室号} 或 {教师}）。");
-    } else if (res.error.indexOf("名称") !== -1) {
+    if (res.error.indexOf("名称") !== -1) {
       showEditorError("学生/班级名称不能为空。");
     } else {
       showEditorError("保存失败：数据没有写进文件，请确认数据文件可写后重试。");
@@ -1014,64 +1040,119 @@ function fillTeacherCardHtml() {
   );
 }
 
+function activeSlotIndices(profile) {
+  const idx = [];
+  (profile.slots || []).forEach((s, i) => {
+    if ((s.template || "").trim()) idx.push(i);
+  });
+  return idx;
+}
+
+function profilePreview(profile) {
+  const slot = (profile.slots || []).find((s) => (s.template || "").trim());
+  return slot ? slot.template : "";
+}
+
+function currentFillProfile() {
+  return state.profiles.find((p) => p.id === fillProfileId);
+}
+
+function saveCurrentPageToDraft() {
+  if (!fillDraft) return;
+  const values = currentFillValues();
+  fillDraft.room = values.room;
+  if (fillPage < fillDraft.slots.length) {
+    fillDraft.slots[fillPage] = {
+      time: values.start && values.end ? values.start + "-" + values.end : "",
+      teacher: values.teacher,
+    };
+  }
+}
+
+function switchFillPage(n) {
+  const profile = currentFillProfile();
+  if (!profile) return;
+  const indices = activeSlotIndices(profile);
+  if (n === fillPage || n < 0 || n >= indices.length) return;
+  saveCurrentPageToDraft();
+  fillPage = n;
+  renderFill(profile, null);
+}
+
 function renderFill(profile, override) {
   fillProfileId = profile.id;
   els.fillTitle.textContent = profile.name || "";
   els.fillError.hidden = true;
   els.fillError.textContent = "";
-  const tpl = profile.template || "";
-  const isPicker = inputMode === "picker";
-  const cards = [];
-  if (tpl.indexOf("{时间}") !== -1) cards.push(isPicker ? fillTimeCardPickerHtml() : fillTimeCardDirectHtml());
-  if (tpl.indexOf("{教室号}") !== -1) cards.push(isPicker ? fillRoomCardPickerHtml() : fillRoomCardDirectHtml());
-  if (tpl.indexOf("{教师}") !== -1) cards.push(fillTeacherCardHtml());
-  els.fillFields.innerHTML = cards.join("");
-
+  const indices = activeSlotIndices(profile);
   const o = override || {};
-  const hasOverrideTime = o.start !== undefined && o.end !== undefined;
-  const lastTime = hasOverrideTime ? o.start + "-" + o.end : profile.last_time || "";
-  const roomVal = o.room !== undefined ? o.room : profile.last_room || "";
-  const teacherVal = o.teacher !== undefined ? o.teacher : profile.last_teacher || "";
+  if (fillPage >= indices.length) fillPage = 0;
 
-  if (tpl.indexOf("{时间}") !== -1) {
-    if (isPicker) {
-      let start = { h: "9", m: "00" };
-      let end = { h: "10", m: "30" };
-      if (lastTime && lastTime.indexOf("-") !== -1) {
-        const parts = lastTime.split("-");
-        start = splitClock(snapTo5(parts[0]));
-        end = splitClock(snapTo5(parts[1]));
-      }
-      renderTimeWheels(start, end);
+  if (!fillDraft) {
+    fillDraft = { room: o.room !== undefined ? o.room : profile.last_room || "", slots: [] };
+    indices.forEach((idx, n) => {
+      const slot = profile.slots[idx];
+      const sv = (o.slots && o.slots[n]) || {};
+      fillDraft.slots.push({
+        time: sv.time !== undefined ? sv.time : slot.last_time || "",
+        teacher: sv.teacher !== undefined ? sv.teacher : slot.last_teacher || "",
+      });
+    });
+  }
+
+  const cur = fillDraft.slots[fillPage] || { time: "", teacher: "" };
+  const isPicker = inputMode === "picker";
+
+  let tabsHtml = '<div class="segmented fill-slot-tabs">';
+  indices.forEach((idx, n) => {
+    tabsHtml += '<button class="seg-tab' + (n === fillPage ? ' active' : '') + '" data-fillpage="' + n + '" type="button">第 ' + (n + 1) + ' 节</button>';
+  });
+  tabsHtml += '</div>';
+
+  const cards = [];
+  cards.push(isPicker ? fillTimeCardPickerHtml() : fillTimeCardDirectHtml());
+  cards.push(isPicker ? fillRoomCardPickerHtml() : fillRoomCardDirectHtml());
+  cards.push(fillTeacherCardHtml());
+  els.fillFields.innerHTML = tabsHtml + cards.join("");
+
+  if (isPicker) {
+    let start = { h: "9", m: "00" };
+    let end = { h: "10", m: "30" };
+    if (cur.time && cur.time.indexOf("-") !== -1) {
+      const parts = cur.time.split("-");
+      start = splitClock(snapTo5(parts[0]));
+      end = splitClock(snapTo5(parts[1]));
+    }
+    renderTimeWheels(start, end);
+  } else {
+    const startEl = document.getElementById("fill-time-start");
+    const endEl = document.getElementById("fill-time-end");
+    if (cur.time && cur.time.indexOf("-") !== -1) {
+      const parts = cur.time.split("-");
+      startEl.value = parts[0] || "9:00";
+      endEl.value = parts[1] || "10:30";
     } else {
-      const startEl = document.getElementById("fill-time-start");
-      const endEl = document.getElementById("fill-time-end");
-      if (lastTime && lastTime.indexOf("-") !== -1) {
-        const parts = lastTime.split("-");
-        startEl.value = parts[0] || "9:00";
-        endEl.value = parts[1] || "10:30";
-      } else {
-        startEl.value = "9:00";
-        endEl.value = "10:30";
-      }
+      startEl.value = "9:00";
+      endEl.value = "10:30";
     }
   }
-  if (tpl.indexOf("{教室号}") !== -1) {
-    const exists = roomVal && state.rooms.some((r) => r.number === roomVal);
-    if (isPicker) {
-      selectedRoomNumber = exists ? roomVal : "";
-      const match = exists ? state.rooms.find((r) => r.number === roomVal) : null;
-      fillRoomCategory = match ? match.category : "class";
-      wireRoomToggle();
-      renderRoomToggle();
-      renderRoomChips();
-    } else {
-      document.getElementById("fill-room").value = exists ? roomVal : "";
-    }
+
+  const exists = fillDraft.room && state.rooms.some((r) => r.number === fillDraft.room);
+  if (isPicker) {
+    selectedRoomNumber = exists ? fillDraft.room : "";
+    const match = exists ? state.rooms.find((r) => r.number === fillDraft.room) : null;
+    fillRoomCategory = match ? match.category : "class";
+    wireRoomToggle();
+    renderRoomToggle();
+    renderRoomChips();
+  } else {
+    document.getElementById("fill-room").value = exists ? fillDraft.room : "";
   }
-  if (tpl.indexOf("{教师}") !== -1) {
-    document.getElementById("fill-teacher").value = teacherVal;
-  }
+  document.getElementById("fill-teacher").value = cur.teacher;
+
+  els.fillFields.querySelectorAll(".fill-slot-tabs .seg-tab").forEach((tab) => {
+    tab.addEventListener("click", () => switchFillPage(parseInt(tab.dataset.fillpage, 10)));
+  });
 }
 
 async function openFill(profile) {
@@ -1085,17 +1166,17 @@ async function openFill(profile) {
     roomsLoaded = true;
   }
   showView("fill");
+  fillPage = 0;
+  fillDraft = null;
   const classes = lookupSchedule(profile.name);
   let override;
   if (classes && classes.length > 0) {
-    const first = classes[0];
-    const parts = (first.time || "").split("-");
-    override = {
-      start: parts[0] || "",
-      end: parts[1] || parts[0] || "",
-      room: first.room || "",
-      teacher: first.teacher || "",
-    };
+    const indices = activeSlotIndices(profile);
+    const slots = indices.map((idx, n) => {
+      const c = classes[n];
+      return c ? { time: c.time || "", teacher: c.teacher || "" } : { time: "", teacher: "" };
+    });
+    override = { room: classes[0].room || "", slots };
   }
   renderFill(profile, override);
   renderScheduleNote(profile, classes);
@@ -1234,10 +1315,10 @@ function currentFillValues() {
 
 function toggleInputMode(nextMode) {
   if (nextMode === inputMode) return;
-  const profile = state.profiles.find((p) => p.id === fillProfileId);
-  const v = currentFillValues();
+  const profile = currentFillProfile();
+  saveCurrentPageToDraft();
   inputMode = nextMode;
-  if (profile) renderFill(profile, v);
+  if (profile) renderFill(profile, null);
   try {
     localStorage.setItem("inputMode", nextMode);
   } catch (err) {
@@ -1279,66 +1360,45 @@ function normalizeClock(hourStr, minuteStr) {
 async function handleFillConfirm() {
   const profile = state.profiles.find((p) => p.id === fillProfileId);
   if (!profile) return;
-  const tpl = profile.template || "";
+  const indices = activeSlotIndices(profile);
+  saveCurrentPageToDraft();
   clearFillFieldErrors();
   els.fillError.hidden = true;
 
-  const values = currentFillValues();
-  let last_time = "";
-  let last_room = "";
-  let last_teacher = "";
-
-  if (tpl.indexOf("{时间}") !== -1) {
-    const start = values.start.trim();
-    const end = values.end.trim();
-    const re = /^(\d{1,2}):(\d{2})$/;
-    const sm = re.exec(start);
-    const em = re.exec(end);
-    if (!sm || !em) {
-      showFillFieldError("time", "时间格式不正确，例如 9:00。");
-      focusFillInput("fill-time-start");
-      return;
+  for (let n = 0; n < indices.length; n++) {
+    const sv = fillDraft.slots[n] || { time: "", teacher: "" };
+    if (sv.time) {
+      const parts = sv.time.split("-");
+      const re = /^(\d{1,2}):(\d{2})$/;
+      const sm = re.exec(parts[0]);
+      const em = re.exec(parts[1]);
+      if (!sm || !em) {
+        fillPage = n; renderFill(profile, null);
+        showFillFieldError("time", "时间格式不正确，例如 9:00。");
+        return;
+      }
+      const sh = parseInt(sm[1], 10), sM = parseInt(sm[2], 10);
+      const eh = parseInt(em[1], 10), eM = parseInt(em[2], 10);
+      if (sh > 23 || sM > 59 || eh > 23 || eM > 59 || sh * 60 + sM >= eh * 60 + eM) {
+        fillPage = n; renderFill(profile, null);
+        showFillFieldError("time", "开始时间不能晚于结束时间。");
+        return;
+      }
     }
-    const sh = parseInt(sm[1], 10), sM = parseInt(sm[2], 10);
-    const eh = parseInt(em[1], 10), eM = parseInt(em[2], 10);
-    if (sh > 23 || sM > 59 || eh > 23 || eM > 59) {
-      showFillFieldError("time", "时间格式不正确，例如 9:00。");
-      focusFillInput("fill-time-start");
-      return;
-    }
-    if (sh * 60 + sM >= eh * 60 + eM) {
-      showFillFieldError("time", "开始时间不能晚于结束时间。");
-      focusFillInput("fill-time-end");
-      return;
-    }
-    last_time = normalizeClock(sm[1], sm[2]) + "-" + normalizeClock(em[1], em[2]);
   }
 
-  if (tpl.indexOf("{教室号}") !== -1) {
-    const room = values.room.trim();
-    if (!room) {
-      showFillFieldError("room", "教室号不能为空。");
-      focusFillInput("fill-room");
-      return;
-    }
-    last_room = room;
-  }
-
-  if (tpl.indexOf("{教师}") !== -1) {
-    const teacher = values.teacher.trim();
-    if (!teacher) {
-      showFillFieldError("teacher", "教师姓名不能为空。");
-      focusFillInput("fill-teacher");
-      return;
-    }
-    last_teacher = teacher;
-  }
+  const room = fillDraft.room;
+  const fullSlots = [{ time: "", teacher: "" }, { time: "", teacher: "" }, { time: "", teacher: "" }];
+  indices.forEach((fullIdx, n) => {
+    const sv = fillDraft.slots[n] || { time: "", teacher: "" };
+    fullSlots[fullIdx] = { time: sv.time, teacher: sv.teacher };
+  });
 
   let res;
   try {
     res = await api("/api/profiles/" + fillProfileId + "/fill", {
       method: "PUT",
-      body: { last_time, last_room, last_teacher },
+      body: { room, slots: fullSlots },
     });
   } catch (err) {
     els.fillError.textContent = "保存失败：数据没有写进文件，请确认数据文件可写后重试。";
@@ -1350,9 +1410,12 @@ async function handleFillConfirm() {
     els.fillError.hidden = false;
     return;
   }
-  Object.assign(profile, { last_time, last_room, last_teacher });
-  renderedText = renderCopyText(tpl, last_time, last_room, last_teacher);
-  openCopyModal(profile, renderedText);
+  profile.last_room = room;
+  indices.forEach((fullIdx, n) => {
+    profile.slots[fullIdx].last_time = fullSlots[fullIdx].time;
+    profile.slots[fullIdx].last_teacher = fullSlots[fullIdx].teacher;
+  });
+  openCopyModal(profile, renderCopyText(profile));
 }
 
 function wireEvents() {
@@ -1387,7 +1450,9 @@ function wireEvents() {
   els.fillModeToggle.querySelectorAll(".seg-tab").forEach((tab) => {
     tab.addEventListener("click", () => toggleInputMode(tab.dataset.mode));
   });
-  els.templateComposer.addEventListener("input", renderPreview);
+  els.editorSlotTabs.querySelectorAll(".seg-tab").forEach((tab) => {
+    tab.addEventListener("click", () => switchEditorSlot(parseInt(tab.dataset.slot, 10)));
+  });
   document.querySelectorAll(".chip-btn").forEach((btn) => {
     btn.addEventListener("click", () => insertToken(btn.dataset.token));
   });

@@ -36,6 +36,12 @@ STATIC_DIR = os.path.join(SCRIPT_DIR, "static")
 
 PLACEHOLDERS = ["{时间}", "{教室号}", "{教师}"]
 
+# 多课节提醒的默认结构：固定头 + 3 个课节行 + 固定尾
+DEFAULT_HEADER = "明日上课提醒：✨✨✨\n🚪教室安排：{教室号}\n🔔 时间安排："
+DEFAULT_FOOTER = "有任何问题及时沟通哈"
+DEFAULT_SLOT_TEMPLATE = "{时间} @{教师}"
+MAX_SLOTS = 3
+
 # URL → 文件 的静态路由白名单（防路径穿越：绝不把用户路径拼进文件系统）
 STATIC_ROUTES = {
     "/": "index.html",
@@ -81,7 +87,7 @@ class JsonStore:
         if not isinstance(data, dict):
             return dict(EMPTY_SCHEMA)
         return {
-            "profiles": data.get("profiles") or [],
+            "profiles": [migrate_profile(p) for p in (data.get("profiles") or [])],
             "rooms": data.get("rooms") or [],
         }
 
@@ -96,36 +102,75 @@ def now_iso():
     return datetime.now(timezone.utc).astimezone().isoformat()
 
 
-def new_profile(name, template):
+def empty_slot(template=""):
+    return {"template": template, "last_time": "", "last_teacher": ""}
+
+
+def new_profile(name, header=None, footer=None, slots=None):
     now = now_iso()
+    if slots is None:
+        slots = [
+            empty_slot(DEFAULT_SLOT_TEMPLATE),
+            empty_slot(DEFAULT_SLOT_TEMPLATE),
+            empty_slot(""),
+        ]
     return {
         "id": "p_" + uuid.uuid4().hex[:12],
         "name": name,
-        "template": template,
-        "last_time": "",
+        "header": header if header is not None else DEFAULT_HEADER,
+        "footer": footer if footer is not None else DEFAULT_FOOTER,
+        "slots": slots,
         "last_room": "",
-        "last_teacher": "",
         "created_at": now,
         "updated_at": now,
     }
 
 
+def migrate_profile(p):
+    """把旧版单模板档案迁移成新的多课节结构。"""
+    if not isinstance(p, dict):
+        return p
+    if isinstance(p.get("slots"), list):
+        return p
+    p = dict(p)
+    old_template = p.pop("template", "")
+    old_time = p.pop("last_time", "")
+    old_teacher = p.pop("last_teacher", "")
+    p["header"] = p.get("header") or DEFAULT_HEADER
+    p["footer"] = p.get("footer") or DEFAULT_FOOTER
+    slots = [empty_slot(old_template), empty_slot(""), empty_slot("")]
+    slots[0]["last_time"] = old_time
+    slots[0]["last_teacher"] = old_teacher
+    p["slots"] = slots
+    p.setdefault("last_room", "")
+    return p
+
+
 def validate_profile(body):
-    """校验并清洗档案输入，返回 (name, template, error)。合法时 error 为 None。"""
+    """校验并清洗档案输入，返回 (name, header, footer, slots, error)。合法时 error 为 None。"""
     if not isinstance(body, dict):
-        return None, None, "模板里至少要有一个占位符（{时间}、{教室号} 或 {教师}）。"
+        return None, None, None, None, "数据格式不正确。"
     name = body.get("name")
-    template = body.get("template")
     if not isinstance(name, str):
         name = str(name) if name is not None else ""
-    if not isinstance(template, str):
-        template = str(template) if template is not None else ""
     name = name.strip()
     if not name:
-        return None, None, "学生/班级名称不能为空。"
-    if not any(p in template for p in PLACEHOLDERS):
-        return None, None, "模板里至少要有一个占位符（{时间}、{教室号} 或 {教师}）。"
-    return name, template, None
+        return None, None, None, None, "学生/班级名称不能为空。"
+    header = body.get("header")
+    header = header if isinstance(header, str) else DEFAULT_HEADER
+    footer = body.get("footer")
+    footer = footer if isinstance(footer, str) else DEFAULT_FOOTER
+    slots_raw = body.get("slots")
+    if not isinstance(slots_raw, list):
+        slots_raw = []
+    slots = []
+    for s in slots_raw:
+        tpl = s.get("template") if isinstance(s, dict) else ""
+        tpl = tpl if isinstance(tpl, str) else ""
+        slots.append({"template": tpl.strip(), "last_time": "", "last_teacher": ""})
+    while len(slots) < MAX_SLOTS:
+        slots.append(empty_slot(""))
+    return name, header, footer, slots[:MAX_SLOTS], None
 
 
 def new_room(number, category):
@@ -153,31 +198,35 @@ def validate_room(body):
 
 
 def validate_fill(body):
-    """校验并清洗填写输入，返回 (last_time, last_room, last_teacher, error)。合法时 error 为 None。"""
+    """校验并清洗填写输入，返回 (room, slot_values, error)。slot_values = [{time, teacher}, ...]。"""
     if not isinstance(body, dict):
-        return None, None, None, "时间格式不正确，例如 9:00。"
-    last_time = body.get("last_time")
-    last_room = body.get("last_room")
-    last_teacher = body.get("last_teacher")
-    if not isinstance(last_time, str):
-        last_time = str(last_time) if last_time is not None else ""
-    if not isinstance(last_room, str):
-        last_room = str(last_room) if last_room is not None else ""
-    if not isinstance(last_teacher, str):
-        last_teacher = str(last_teacher) if last_teacher is not None else ""
-    last_time = last_time.strip()
-    last_room = last_room.strip()
-    last_teacher = last_teacher.strip()
-    if last_time:
-        m = re.match(r"^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$", last_time)
-        if not m:
-            return None, None, None, "时间格式不正确，例如 9:00。"
-        h1, m1, h2, m2 = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
-        if h1 > 23 or m1 > 59 or h2 > 23 or m2 > 59:
-            return None, None, None, "时间格式不正确，例如 9:00。"
-        if h1 * 60 + m1 >= h2 * 60 + m2:
-            return None, None, None, "开始时间不能晚于结束时间。"
-    return last_time, last_room, last_teacher, None
+        return None, None, "数据格式不正确。"
+    room = body.get("room")
+    room = room.strip() if isinstance(room, str) else ""
+    slots_raw = body.get("slots")
+    if not isinstance(slots_raw, list):
+        slots_raw = []
+    slot_values = []
+    for s in slots_raw[:MAX_SLOTS]:
+        if not isinstance(s, dict):
+            s = {}
+        time = s.get("time")
+        teacher = s.get("teacher")
+        time = time.strip() if isinstance(time, str) else ""
+        teacher = teacher.strip() if isinstance(teacher, str) else ""
+        if time:
+            m = re.match(r"^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$", time)
+            if not m:
+                return None, None, "时间格式不正确，例如 9:00。"
+            h1, m1, h2, m2 = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+            if h1 > 23 or m1 > 59 or h2 > 23 or m2 > 59:
+                return None, None, "时间格式不正确，例如 9:00。"
+            if h1 * 60 + m1 >= h2 * 60 + m2:
+                return None, None, "开始时间不能晚于结束时间。"
+        slot_values.append({"time": time, "teacher": teacher})
+    while len(slot_values) < MAX_SLOTS:
+        slot_values.append({"time": "", "teacher": ""})
+    return room, slot_values, None
 
 
 def validate_import(body):
@@ -190,9 +239,9 @@ def validate_import(body):
         return None, "数据格式不正确。"
     clean_profiles = []
     for p in profiles:
-        if not isinstance(p, dict) or not isinstance(p.get("name"), str) or not isinstance(p.get("template"), str):
+        if not isinstance(p, dict) or not isinstance(p.get("name"), str):
             return None, "档案数据格式不正确。"
-        p = dict(p)
+        p = migrate_profile(dict(p))
         if not isinstance(p.get("id"), str) or not p["id"]:
             p["id"] = "p_" + uuid.uuid4().hex[:12]
         clean_profiles.append(p)
@@ -827,11 +876,11 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path == "/api/profiles":
             body = self._read_body()
-            name, template, err = validate_profile(body)
+            name, header, footer, slots, err = validate_profile(body)
             if err:
                 self._send_json(400, {"error": err})
                 return
-            profile = new_profile(name, template)
+            profile = new_profile(name, header, footer, slots)
             data = self.store.load()
             data["profiles"].append(profile)
             self.store.save(data)
@@ -882,16 +931,18 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
             if profile_id.endswith("/fill"):
                 profile_id = profile_id[: -len("/fill")]
                 body = self._read_body()
-                last_time, last_room, last_teacher, err = validate_fill(body)
+                room, slot_values, err = validate_fill(body)
                 if err:
                     self._send_json(400, {"error": err})
                     return
                 data = self.store.load()
                 for profile in data["profiles"]:
                     if profile["id"] == profile_id:
-                        profile["last_time"] = last_time
-                        profile["last_room"] = last_room
-                        profile["last_teacher"] = last_teacher
+                        profile["last_room"] = room
+                        for i, sv in enumerate(slot_values):
+                            if i < len(profile.get("slots", [])):
+                                profile["slots"][i]["last_time"] = sv["time"]
+                                profile["slots"][i]["last_teacher"] = sv["teacher"]
                         profile["updated_at"] = now_iso()
                         self.store.save(data)
                         self._send_json(200, {"profile": profile})
@@ -899,7 +950,7 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(404, {"error": "Not Found"})
                 return
             body = self._read_body()
-            name, template, err = validate_profile(body)
+            name, header, footer, slots, err = validate_profile(body)
             if err:
                 self._send_json(400, {"error": err})
                 return
@@ -907,7 +958,14 @@ class ReminderHandler(http.server.BaseHTTPRequestHandler):
             for profile in data["profiles"]:
                 if profile["id"] == profile_id:
                     profile["name"] = name
-                    profile["template"] = template
+                    profile["header"] = header
+                    profile["footer"] = footer
+                    old_slots = profile.get("slots", [])
+                    for i, slot in enumerate(slots):
+                        if i < len(old_slots):
+                            slot["last_time"] = old_slots[i].get("last_time", "")
+                            slot["last_teacher"] = old_slots[i].get("last_teacher", "")
+                    profile["slots"] = slots
                     profile["updated_at"] = now_iso()
                     self.store.save(data)
                     self._send_json(200, {"profile": profile})

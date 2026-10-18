@@ -463,17 +463,17 @@ body {
 
 /* ---- Copy modal ---- */
 .copy-preview {
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
   font-family: var(--font-stack);
   font-size: 17px;
   line-height: 1.47;
   color: var(--text-primary);
   background: var(--bg-secondary);
+  border: 1px solid var(--divider);
   border-radius: var(--radius);
   padding: 12px;
-  max-height: 50vh;
-  overflow-y: auto;
+  width: 100%;
+  min-height: 200px;
+  resize: vertical;
   margin: 0;
 }
 
@@ -944,6 +944,10 @@ body {
   line-height: 1.4;
   color: var(--text-secondary);
   margin: 0;
+}
+
+.fill-slot-tabs {
+  margin-bottom: 16px;
 }
 
 .schedule-result {
