@@ -28,6 +28,7 @@ import webbrowser
 import xml.etree.ElementTree as ET
 import zipfile
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(SCRIPT_DIR, "data.json")
@@ -559,9 +560,30 @@ def _win_decrypt_v10(ciphertext, key, strip):
     return out.decode("latin-1")
 
 
-def _read_cookie_db(db_path, key, mode):
-    """通用：读 cookie SQLite，按 mode（mac/win）解密 kdocs.cn cookie。"""
-    conn = sqlite3.connect(db_path)
+def _open_cookie_db(db_path):
+    """打开 cookie DB：优先只读直连（浏览器锁文件时也能读），失败则复制到临时文件。
+    返回 (conn, tmp_path)，只读直连时 tmp_path 为 None。"""
+    try:
+        uri = Path(db_path).absolute().as_uri()
+        for options in ("?mode=ro", "?mode=ro&nolock=1", "?mode=ro&immutable=1"):
+            try:
+                conn = sqlite3.connect(uri + options, uri=True)
+                conn.execute("select 1 from sqlite_master").fetchone()
+                return conn, None
+            except sqlite3.OperationalError:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    tmp = os.path.join(tempfile.gettempdir(), "cr_cookie_%s.db" % os.getpid())
+    shutil.copy2(db_path, tmp)
+    return sqlite3.connect(tmp), tmp
+
+
+def _read_cookie_db(conn, key, mode):
+    """通用：读已打开的 cookie 连接，按 mode（mac/win）解密 kdocs.cn cookie。"""
     try:
         strip = True
         try:
@@ -607,18 +629,19 @@ def _read_browser_kdocs_cookies():
             if not os.path.isdir(app_dir):
                 continue
             for db in _cookie_dbs(app_dir):
-                tmp = os.path.join(tempfile.gettempdir(), "cr_%s_%s.db" % (name, os.getpid()))
+                tmp = None
                 try:
-                    shutil.copy2(db, tmp)
                     key = _mac_v10_key(service, account)
-                    cookies = _read_cookie_db(tmp, key, "mac")
+                    conn, tmp = _open_cookie_db(db)
+                    cookies = _read_cookie_db(conn, key, "mac")
                 except Exception:
                     cookies = {}
                 finally:
-                    try:
-                        os.unlink(tmp)
-                    except OSError:
-                        pass
+                    if tmp:
+                        try:
+                            os.unlink(tmp)
+                        except OSError:
+                            pass
                 if cookies:
                     return cookies
         return {}
@@ -635,18 +658,19 @@ def _read_browser_kdocs_cookies():
             if not os.path.exists(local_state):
                 continue
             for db in _cookie_dbs(app_dir):
-                tmp = os.path.join(tempfile.gettempdir(), "cr_%s_%s.db" % (name, os.getpid()))
+                tmp = None
                 try:
-                    shutil.copy2(db, tmp)
                     key = _win_aes_key(local_state)
-                    cookies = _read_cookie_db(tmp, key, "win")
+                    conn, tmp = _open_cookie_db(db)
+                    cookies = _read_cookie_db(conn, key, "win")
                 except Exception:
                     cookies = {}
                 finally:
-                    try:
-                        os.unlink(tmp)
-                    except OSError:
-                        pass
+                    if tmp:
+                        try:
+                            os.unlink(tmp)
+                        except OSError:
+                            pass
                 if cookies:
                     return cookies
         return {}
